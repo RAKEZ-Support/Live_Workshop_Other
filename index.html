@@ -54,8 +54,7 @@
   .round-tab { flex:1; text-align:center; padding:12px 8px; border-radius:10px; font-weight:700; font-size:.85rem; color:var(--text-muted); cursor:pointer; transition:.2s; }
   .round-tab.active { background:#fff; color:var(--primary-dark); box-shadow:var(--shadow-soft); }
 
-  .grid-2 { display:grid; grid-template-columns:1fr 1.3fr; gap:20px; }
-  @media (max-width:850px){ .grid-2{ grid-template-columns:1fr; } }
+
 
   .qr-box { text-align:center; }
   #qrcode { display:inline-block; padding:14px; background:#fff; border:1px solid var(--hairline); border-radius:16px; box-shadow:var(--shadow-soft); }
@@ -199,7 +198,7 @@ const state = {
 /* ============================== STORAGE HELPERS (Google Sheet backend) ============================== */
 // 1. Create a Google Sheet, add the Apps Script from the setup guide, deploy it as a Web App
 //    ("Execute as: Me", "Who has access: Anyone"), then paste the deployment URL below.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwPCJGpdVLmJK_-83gvDv1HfpR6ag3Mo2oin3fUc6vN4dipumYykIhP0edocuzkpdih/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRVkQEbkjxlG2CqG8q3NyLv16vP4ofwLS5fDZ_wDIe25EsLNMaX7S4l7dFelFSBLYbRQ/exec';
 
 function backendConfigured() {
   return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.startsWith('PASTE_YOUR');
@@ -279,33 +278,31 @@ function renderFacilitator() {
         `).join('')}
       </div>
 
-      <div class="grid-2">
-        <div class="card qr-box">
-          <h3 style="font-size:1.02rem;margin-bottom:4px">${r.icon} ${r.label}</h3>
-          <p style="color:var(--text-muted);font-size:.8rem;margin-bottom:14px">${r.desc}</p>
-          <div id="qrcode"></div>
-          <div class="link-row">
-            <input id="linkBox" type="text" readonly value="">
-            <button class="small-btn" onclick="copyLink()">Copy</button>
-          </div>
-          <div class="warn-note" id="backendWarn" style="display:none">⚠ The Google Sheet backend isn't connected yet. Open this file, find <code>APPS_SCRIPT_URL</code> near the top of the script, and paste in your Apps Script Web App URL (see setup guide). Until then, responses can't be saved.</div>
-          <div class="warn-note" style="background:#f0fdfa;border-color:#99f6e4;color:#0f766e">Test-scan this QR from your own phone before the session to confirm it opens correctly.</div>
-          <div class="count-chip" id="respCount">Loading responses…</div>
-          <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-            <button class="small-btn" onclick="exportRound('${r.key}')">⬇ Export CSV</button>
-            <button class="small-btn" style="color:var(--danger)" onclick="confirmClear('${r.key}')">✕ Clear round</button>
-          </div>
-        </div>
-
-        <div class="card" id="summaryCard">
-          <h3 style="font-size:1.02rem;margin-bottom:14px">Live results</h3>
-          <div id="summaryBody" class="empty-state">Loading…</div>
-        </div>
+      <div class="card" id="summaryCard" style="margin-bottom:18px">
+        <h3 style="font-size:1.02rem;margin-bottom:14px">Live results</h3>
+        <div id="summaryBody" class="empty-state">Loading…</div>
       </div>
 
-      <div class="card">
+      <div class="card" style="margin-bottom:18px">
         <h3 style="font-size:1.02rem;margin-bottom:10px">Who responded</h3>
         <ul class="resp-list" id="whoList"><li class="empty-state">Loading…</li></ul>
+      </div>
+
+      <div class="card qr-box">
+        <h3 style="font-size:1.02rem;margin-bottom:4px">${r.icon} ${r.label}</h3>
+        <p style="color:var(--text-muted);font-size:.8rem;margin-bottom:14px">${r.desc}</p>
+        <div id="qrcode"></div>
+        <div class="link-row">
+          <input id="linkBox" type="text" readonly value="">
+          <button class="small-btn" onclick="copyLink()">Copy</button>
+        </div>
+        <div class="warn-note" id="backendWarn" style="display:none">⚠ The Google Sheet backend isn't connected yet. Open this file, find <code>APPS_SCRIPT_URL</code> near the top of the script, and paste in your Apps Script Web App URL (see setup guide). Until then, responses can't be saved.</div>
+        <div class="warn-note" style="background:#f0fdfa;border-color:#99f6e4;color:#0f766e">Test-scan this QR from your own phone before the session to confirm it opens correctly.</div>
+        <div class="count-chip" id="respCount">Loading responses…</div>
+        <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+          <button class="small-btn" onclick="exportRound('${r.key}')">⬇ Export CSV</button>
+          <button class="small-btn" style="color:var(--danger)" onclick="confirmClear('${r.key}')">✕ Clear round</button>
+        </div>
       </div>
     </div>`;
 }
@@ -354,7 +351,6 @@ async function refreshAll() {
   if (state.mode !== 'facilitator') return;
   const round = state.facRound;
   const records = await listResponses(round);
-  records.forEach((r, i) => { r.anonId = i + 1; }); // "Response N" instead of real names, anywhere displayed live
 
   const countEl = document.getElementById('respCount');
   if (countEl) countEl.textContent = `${records.length} response${records.length===1?'':'s'} so far`;
@@ -362,7 +358,7 @@ async function refreshAll() {
   const whoList = document.getElementById('whoList');
   if (whoList) {
     whoList.innerHTML = records.length ? records.slice().reverse().map(rec => `
-      <li class="resp-item"><span class="resp-name">Response ${rec.anonId}</span><span class="resp-time">${new Date(rec.submittedAt).toLocaleTimeString()}</span></li>
+      <li class="resp-item"><span class="resp-name">${escapeHtml(rec.name)}</span><span class="resp-time">${new Date(rec.submittedAt).toLocaleTimeString()}</span></li>
     `).join('') : '<li class="empty-state">No responses yet — waiting for participants to scan the QR code.</li>';
   }
 
@@ -432,7 +428,7 @@ function renderOtherList(records, segKey, fieldKey, label) {
   return `<div style="margin:10px 0 6px">
     <div style="font-size:.74rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${label} — Other (participant-added)</div>
     <ul class="resp-list">
-      ${entries.map(e => `<li class="resp-item"><span class="resp-name">Response ${e.anonId}</span><span class="resp-time">${new Date(e.submittedAt).toLocaleTimeString()}</span><div class="resp-field">${escapeHtml(e.answers[segKey][fieldKey])}</div></li>`).join('')}
+      ${entries.map(e => `<li class="resp-item"><span class="resp-name">${escapeHtml(e.name)}</span><span class="resp-time">${new Date(e.submittedAt).toLocaleTimeString()}</span><div class="resp-field">${escapeHtml(e.answers[segKey][fieldKey])}</div></li>`).join('')}
     </ul>
   </div>`;
 }
@@ -473,7 +469,7 @@ function renderAmbitionSummary(records) {
         <ul class="resp-list">
           ${entries.map(e => `
             <li class="resp-item">
-              <span class="resp-name">Response ${e.anonId}</span><span class="resp-time">${new Date(e.submittedAt).toLocaleTimeString()}</span>
+              <span class="resp-name">${escapeHtml(e.name)}</span><span class="resp-time">${new Date(e.submittedAt).toLocaleTimeString()}</span>
               ${e.answers[seg.key].role ? `<div class="resp-field"><strong>Role:</strong> ${escapeHtml(e.answers[seg.key].role)}</div>` : ''}
               ${e.answers[seg.key].promise ? `<div class="resp-field"><strong>Promise:</strong> ${escapeHtml(e.answers[seg.key].promise)}</div>` : ''}
               ${e.answers[seg.key].feel && e.answers[seg.key].feel.length ? `<div class="resp-field"><strong>Feeling:</strong> ${escapeHtml(e.answers[seg.key].feel.join(', '))}</div>` : ''}
