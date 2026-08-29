@@ -177,10 +177,10 @@ const FEEL_OPTS    = ['Consultative','Proactive','Technical','Intuitive','Fast',
 const OWNER_OPTS   = ['Contact Center Enabled Support','Dedicated Account Manager','Hybrid Model'];
 
 const ROUNDS = {
-  vision:     { key:'vision',     label:'Define the Vision',     icon:'🧭', desc:'Where should each segment sit on the experience spectrum by 2029?' },
+  vision:     { key:'vision',     label:'Define the Aspiration', icon:'🧭', desc:'Where should each segment sit on the experience spectrum by 2029?' },
+  emotion:    { key:'emotion',    label:'Define the Emotion',    icon:'💗', desc:'What 3 emotions should customers feel about RAKEZ after every interaction?' },
   ambition:   { key:'ambition',   label:'Define our Ambition',   icon:'🤝', desc:'What role do we play, and what one promise do we make each segment?' },
   experience: { key:'experience', label:'Define the Experience', icon:'🎯', desc:'How should each segment be served, reached, and made to feel?' },
-  emotion:    { key:'emotion',    label:'Define the Emotion',    icon:'💗', desc:'What 3 emotions should customers feel about RAKEZ after every interaction?' },
 };
 
 const STOPWORDS = new Set(['that','with','this','from','have','their','they','them','will','into','more','than','and','the','for','are','our','who','what','when','where','which','being','make','helps','help','while']);
@@ -199,7 +199,7 @@ const state = {
 /* ============================== STORAGE HELPERS (Google Sheet backend) ============================== */
 // 1. Create a Google Sheet, add the Apps Script from the setup guide, deploy it as a Web App
 //    ("Execute as: Me", "Who has access: Anyone"), then paste the deployment URL below.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwPCJGpdVLmJK_-83gvDv1HfpR6ag3Mo2oin3fUc6vN4dipumYykIhP0edocuzkpdih/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxRVkQEbkjxlG2CqG8q3NyLv16vP4ofwLS5fDZ_wDIe25EsLNMaX7S4l7dFelFSBLYbRQ/exec';
 
 function backendConfigured() {
   return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.startsWith('PASTE_YOUR');
