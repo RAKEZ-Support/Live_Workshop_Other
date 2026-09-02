@@ -147,7 +147,47 @@
 
   .err { color:var(--danger); font-size:.78rem; margin-top:6px; display:none; }
 
-  @media (max-width:600px){ .chip-grid{ grid-template-columns:1fr 1fr; } }
+  /* ---------- North Star (KPI + target) ---------- */
+  .ns-intro { font-size:.82rem; color:var(--text-muted); line-height:1.6; margin-bottom:16px; }
+  .group-note { display:flex; gap:9px; align-items:flex-start; background:var(--light-teal); border:1px solid #99f6e4; border-radius:12px; padding:11px 14px; margin-bottom:14px; font-size:.8rem; line-height:1.5; color:#0f766e; }
+  .group-note strong { color:var(--primary-dark); }
+  .theme-block { border:1px solid var(--hairline); border-radius:14px; padding:16px 16px 14px; margin-bottom:14px; background:#fbfcfd; }
+  .theme-head { display:flex; align-items:center; gap:9px; }
+  .theme-head .th-ic { width:30px; height:30px; border-radius:9px; background:var(--light-teal); display:flex; align-items:center; justify-content:center; font-size:.95rem; flex-shrink:0; }
+  .theme-head h5 { margin:0; font-family:var(--font-display); font-weight:600; font-size:1rem; color:var(--primary-dark); }
+  .kpi-count { margin-left:auto; font-size:.72rem; font-weight:800; color:var(--text-muted); }
+  .kpi-count.full { color:var(--danger); }
+  .theme-sub { font-size:.74rem; color:var(--text-muted); margin:2px 0 12px 39px; }
+  .kpi-row { border:1.5px solid var(--hairline); border-radius:11px; background:#fff; margin-bottom:8px; transition:.15s; }
+  .kpi-row.on { border-color:var(--accent-teal); box-shadow:0 0 0 3px rgba(0,168,150,.10); }
+  .kpi-head { display:flex; align-items:center; gap:10px; padding:11px 13px; cursor:pointer; }
+  .kpi-tick { width:18px; height:18px; border-radius:5px; border:1.5px solid #cbd5e1; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.66rem; color:#fff; }
+  .kpi-row.on .kpi-tick { background:var(--accent-teal); border-color:var(--accent-teal); }
+  .kpi-row.on .kpi-tick::after { content:'\2713'; }
+  .kpi-name { font-size:.85rem; font-weight:700; color:var(--text-main); }
+  .kpi-base { margin-left:auto; text-align:right; font-size:.71rem; font-weight:700; color:var(--primary-dark); background:var(--light-teal); border-radius:999px; padding:4px 10px; }
+  .kpi-base em { font-style:normal; font-weight:600; color:var(--text-muted); }
+  .kpi-base.none { background:#f4f6f8; color:var(--text-muted); font-weight:600; }
+  .kpi-target { display:none; padding:0 13px 12px 41px; }
+  .kpi-row.on .kpi-target { display:block; }
+  .target-input { width:100%; padding:9px 12px; border:1.5px solid var(--hairline); border-radius:9px; font-size:.83rem; font-family:inherit; background:#fbfcfd; }
+  .target-input:focus { outline:none; border-color:var(--accent-teal); background:#fff; box-shadow:0 0 0 3.5px rgba(0,168,150,.13); }
+  .custom-name { flex:1; min-width:0; padding:7px 11px; border:1.5px dashed var(--hairline); border-radius:9px; font-size:.83rem; font-family:inherit; background:#fbfcfd; }
+  .custom-name:focus { outline:none; border-style:solid; border-color:var(--accent-teal); background:#fff; }
+  .kpi-remove { border:none; background:none; color:var(--text-muted); font-size:.85rem; cursor:pointer; padding:4px 6px; border-radius:6px; }
+  .kpi-remove:hover { color:var(--danger); background:var(--danger-bg); }
+  .add-kpi { width:100%; border:1.5px dashed var(--hairline); background:none; color:var(--primary-dark); font-family:inherit; font-weight:700; font-size:.8rem; padding:10px; border-radius:10px; cursor:pointer; }
+  .add-kpi:hover { border-color:var(--accent-teal); background:var(--light-teal); }
+  .th-label { font-size:.74rem; font-weight:800; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; }
+  .target-line { font-size:.74rem; color:var(--text-main); margin:-2px 0 9px 160px; line-height:1.5; }
+
+  @media (max-width:600px){
+    .chip-grid{ grid-template-columns:1fr 1fr; }
+    .kpi-head { flex-wrap:wrap; }
+    .kpi-base { margin-left:28px; text-align:left; }
+    .kpi-target { padding-left:13px; }
+    .target-line { margin-left:0; }
+  }
 </style>
 </head>
 <body>
@@ -175,18 +215,93 @@ const CHANNEL_OPTS = ['Portal','Email','Call','Mobile App','Key Accounts','Whats
 const FEEL_OPTS    = ['Consultative','Proactive','Technical','Intuitive','Fast','Guided','Transparent','SLA-Driven','Empathetic','Reliable'];
 const OWNER_OPTS   = ['Contact Center Enabled Support','Dedicated Account Manager','Hybrid Model'];
 
+/* ---------- North Star: KPI catalogue, per-theme, filtered per segment ---------- */
+const ALL_SEGS = ['ni','ind','lta','sa'];
+const MAX_KPIS_PER_THEME = 5;
+
+const KPI_THEMES = [
+  { key:'experience',  icon:'\u{1F929}', label:'Experience',             sub:'KPIs leading to a better experience' },
+  { key:'commercial',  icon:'\u{1F4C8}', label:'Commercial',             sub:'KPIs contributing to more revenue' },
+  { key:'operational', icon:'\u2699\uFE0F', label:'Operational Efficiency', sub:'KPIs measuring improved efficiency' },
+];
+
+// `unit` only drives the target placeholder — targets are captured as free text
+// so people can write "\u2265 90%", "\u2264 3 days" or "top quartile" as they wish.
+const KPI_CATALOGUE = {
+  experience: [
+    { name:'CSAT',                          unit:'pct',   segs:ALL_SEGS },
+    { name:'Customer Effort Score (CES)',   unit:'score', segs:ALL_SEGS },
+    { name:'NPS',                           unit:'score', segs:ALL_SEGS },
+    { name:'Positive Perception',           unit:'pct',   segs:['ni','ind'] },
+    { name:'Positive Partner Perception',   unit:'pct',   segs:['lta','sa'] },
+    { name:'Portal Adoption',               unit:'pct',   segs:ALL_SEGS },
+    { name:'KAM / Advisory Satisfaction',   unit:'pct',   segs:['ind','sa'] },
+  ],
+  commercial: [
+    { name:'Opportunity Conversion Rate',    unit:'pct', segs:['ni','ind'] },
+    { name:'Renewal Rate',                   unit:'pct', segs:ALL_SEGS },
+    { name:'New Client Registration Growth', unit:'pct', segs:['ni','ind'] },
+    { name:'New Client Growth',              unit:'pct', segs:['lta','sa'] },
+    { name:'Expansion / Upsell Pipeline',    unit:'pct', segs:['ni','ind'] },
+    { name:'VAS Uptake',                     unit:'pct', segs:ALL_SEGS },
+    { name:'Agent Churn',                    unit:'pct', segs:['lta','sa'] },
+    { name:'Share of Business',              unit:'pct', segs:['lta','sa'] },
+  ],
+  operational: [
+    { name:'Licensing TAT',                  unit:'days', segs:ALL_SEGS },
+    { name:'Visa TAT',                       unit:'days', segs:ALL_SEGS },
+    { name:'Renewal TAT',                    unit:'days', segs:ALL_SEGS },
+    { name:'Amendment TAT',                  unit:'days', segs:ALL_SEGS },
+    { name:'First Contact Resolution (FCR)', unit:'pct',  segs:ALL_SEGS },
+    { name:'Average Handling Time (AHT)',    unit:'mins', segs:ALL_SEGS },
+    { name:'Email Response Time',            unit:'hrs',  segs:ALL_SEGS },
+  ]
+};
+
+/* Current-state baselines. Split by segment where the scorecard splits them,
+   `all` where the measure is organisation-wide. The scorecard reports ONE
+   combined Agents column, so both agent segments show the same figure and it
+   is labelled as combined. KPIs absent from here show "Not measured today"
+   rather than an invented number. */
+const KPI_BASELINES = {
+  'CSAT':                          { ni:'Lic 88% / Visa 85% / Ren 88% / Amd 87%',
+                                     ind:'Lic 95% / Visa 93% / Ren 95% / Amd 81%',
+                                     agents:'Lic 85% / Visa 83% / Ren 87% / Amd 88%' },
+  'Licensing TAT':                 { ni:'2 days',  ind:'11 days', agents:'2.5 days' },
+  'Visa TAT':                      { ni:'5 days',  ind:'6 days',  agents:'5 days' },
+  'Renewal TAT':                   { ni:'2 days',  ind:'3 days',  agents:'2.5 days' },
+  'Amendment TAT':                 { ni:'6 days',  ind:'12 days', agents:'7 days' },
+  'First Contact Resolution (FCR)':{ all:'75%' },
+  'Average Handling Time (AHT)':   { all:'8 mins' },
+  'Email Response Time':           { all:'8 hrs' },
+  'NPS':                           { all:'64' },
+  'Customer Effort Score (CES)':   { all:'60' },
+  'Opportunity Conversion Rate':   { all:'12%' },
+  'VAS Uptake':                    { all:'6%' },
+};
+
+function baselineFor(kpiName, segKey) {
+  const b = KPI_BASELINES[kpiName];
+  if (!b) return null;
+  if (b.all) return { value: b.all, combined: false };
+  if (segKey === 'lta' || segKey === 'sa') return b.agents ? { value: b.agents, combined: true } : null;
+  return b[segKey] ? { value: b[segKey], combined: false } : null;
+}
+
+const TARGET_HINTS = { pct:'e.g. \u2265 90%', score:'e.g. \u2265 65', days:'e.g. \u2264 3 days', mins:'e.g. \u2264 6 mins', hrs:'e.g. \u2264 4 hrs' };
+
 const ROUNDS = {
-  vision:     { key:'vision',     label:'Define the Aspiration', icon:'🧭', desc:'Where should each segment sit on the experience spectrum by 2029?' },
-  emotion:    { key:'emotion',    label:'Define the Emotion',    icon:'💗', desc:'What 3 emotions should customers feel about RAKEZ after every interaction?' },
-  ambition:   { key:'ambition',   label:'Define our Ambition',   icon:'🤝', desc:'What role do we play, and what one promise do we make each segment?' },
-  experience: { key:'experience', label:'Define the Experience', icon:'🎯', desc:'How should each segment be served, reached, and made to feel?' },
+  vision:    { key:'vision',    label:'Define the Aspiration', icon:'🧭', desc:'Where should each segment sit on the experience spectrum by 2029?' },
+  emotion:   { key:'emotion',   label:'Define the Emotion',    icon:'💗', desc:'What 3 emotions should customers feel about RAKEZ after every interaction?' },
+  ambition:  { key:'ambition',  label:'Defining the Ambition', icon:'🤝', desc:'Group activity — align the target ambition for your own segment across six levers.' },
+  northstar: { key:'northstar', label:'Define the North Star',  icon:'🎯', desc:'Group activity — choose the KPIs that define success for your own segment, and set a target against today.' },
 };
 
 const STOPWORDS = new Set(['that','with','this','from','have','their','they','them','will','into','more','than','and','the','for','are','our','who','what','when','where','which','being','make','helps','help','while']);
 
 /* ============================== STATE ============================== */
 const params = new URLSearchParams(window.location.search);
-const validRound = ['vision','ambition','experience','emotion'].includes(params.get('round')) ? params.get('round') : null;
+const validRound = ['vision','ambition','northstar','emotion'].includes(params.get('round')) ? params.get('round') : null;
 const state = {
   mode: params.get('mode') === 'submit' ? 'submit' : 'facilitator',
   round: validRound,
@@ -373,7 +488,7 @@ async function refreshAll() {
     } else if (round === 'emotion') {
       summary.innerHTML = renderEmotionSummary(records);
     } else {
-      summary.innerHTML = renderExperienceSummary(records);
+      summary.innerHTML = renderNorthStarSummary(records);
     }
   }
 }
@@ -433,17 +548,43 @@ function renderOtherList(records, segKey, fieldKey, label) {
   </div>`;
 }
 
-function renderExperienceSummary(records) {
-  const groups = [
-    ['serve','How we serve',SERVE_OPTS,'serveOther'],
-    ['channel','Channel',CHANNEL_OPTS,'channelOther'],
-    ['owner','Ownership',OWNER_OPTS,'ownerOther']
-  ];
-  return SEGMENTS.map(seg => `
-    <div class="seg-block">
-      <h4><span class="seg-dot" style="background:${seg.color}"></span>${seg.icon} ${seg.label}</h4>
-      ${groups.map(([gk,glabel,opts,otherKey]) => renderOptionTally(gk, glabel, opts, records, seg.key) + renderOtherList(records, seg.key, otherKey, glabel)).join('')}
-    </div>`).join('');
+function renderNorthStarSummary(records) {
+  return SEGMENTS.map(seg => {
+    const body = KPI_THEMES.map(th => {
+      const counts = {}, targets = {};
+      let n = 0;
+      records.forEach(r => {
+        const items = r.answers && r.answers[seg.key] && r.answers[seg.key][th.key];
+        if (!items || !items.length) return;
+        n++;
+        items.forEach(it => {
+          counts[it.kpi] = (counts[it.kpi] || 0) + 1;
+          if (it.target) (targets[it.kpi] = targets[it.kpi] || []).push(it.target);
+        });
+      });
+      const rows = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+      if (!rows.length) {
+        return `<div style="margin:12px 0 6px"><div class="th-label">${th.icon} ${th.label}</div>
+          <div class="empty-state" style="padding:4px 0">No KPIs picked yet.</div></div>`;
+      }
+      const max = rows[0][1];
+      return `<div style="margin:12px 0 6px">
+        <div class="th-label">${th.icon} ${th.label} &nbsp;n=${n}</div>
+        ${rows.map(([kpi,c]) => {
+          const base = baselineFor(kpi, seg.key);
+          const tl = (targets[kpi] || []);
+          return `
+          <div class="bar-row">
+            <div class="bar-label">${escapeHtml(kpi)}</div>
+            <div class="bar-track"><div class="bar-fill ${c===max?'top':''}" style="width:${(c/max*100)||0}%"></div></div>
+            <div class="bar-count">${c}</div>
+          </div>
+          <div class="target-line">${tl.length ? '<strong>Targets:</strong> ' + escapeHtml(tl.join('  \u00B7  ')) : '<span style="color:var(--text-muted)">no target given</span>'}${base ? ` &nbsp;<span style="color:var(--text-muted)">&mdash; today ${escapeHtml(base.value)}</span>` : ''}</div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+    return `<div class="seg-block"><h4><span class="seg-dot" style="background:${seg.color}"></span>${seg.icon} ${seg.label}</h4>${body}</div>`;
+  }).join('');
 }
 
 function keywordChips(text) {
@@ -456,7 +597,12 @@ function keywordChips(text) {
 
 function renderAmbitionSummary(records) {
   return SEGMENTS.map(seg => {
-    const entries = records.filter(r => r.answers && r.answers[seg.key] && (r.answers[seg.key].role || r.answers[seg.key].promise || (r.answers[seg.key].feel && r.answers[seg.key].feel.length) || r.answers[seg.key].feelOther));
+    const entries = records.filter(r => {
+      const a = r.answers && r.answers[seg.key];
+      if (!a) return false;
+      return a.role || a.promise || a.feelOther || a.serveOther || a.channelOther || a.owner || a.ownerOther ||
+        (a.feel && a.feel.length) || (a.serve && a.serve.length) || (a.channel && a.channel.length);
+    });
     if (!entries.length) return `
       <div class="seg-block"><h4><span class="seg-dot" style="background:${seg.color}"></span>${seg.icon} ${seg.label}</h4>
       <div class="empty-state" style="padding:8px 0">No responses yet for this segment.</div></div>`;
@@ -472,11 +618,20 @@ function renderAmbitionSummary(records) {
               <span class="resp-name">${escapeHtml(e.name)}</span><span class="resp-time">${new Date(e.submittedAt).toLocaleTimeString()}</span>
               ${e.answers[seg.key].role ? `<div class="resp-field"><strong>Role:</strong> ${escapeHtml(e.answers[seg.key].role)}</div>` : ''}
               ${e.answers[seg.key].promise ? `<div class="resp-field"><strong>Promise:</strong> ${escapeHtml(e.answers[seg.key].promise)}</div>` : ''}
-              ${e.answers[seg.key].feel && e.answers[seg.key].feel.length ? `<div class="resp-field"><strong>Feeling:</strong> ${escapeHtml(e.answers[seg.key].feel.join(', '))}</div>` : ''}
+              ${e.answers[seg.key].feel && e.answers[seg.key].feel.length ? `<div class="resp-field"><strong>Feels like:</strong> ${escapeHtml(e.answers[seg.key].feel.join(', '))}</div>` : ''}
+              ${e.answers[seg.key].serve && e.answers[seg.key].serve.length ? `<div class="resp-field"><strong>Served by:</strong> ${escapeHtml(e.answers[seg.key].serve.join(', '))}</div>` : ''}
+              ${e.answers[seg.key].channel && e.answers[seg.key].channel.length ? `<div class="resp-field"><strong>Channel:</strong> ${escapeHtml(e.answers[seg.key].channel.join(', '))}</div>` : ''}
+              ${e.answers[seg.key].owner ? `<div class="resp-field"><strong>Owned by:</strong> ${escapeHtml(e.answers[seg.key].owner)}</div>` : ''}
             </li>`).join('')}
         </ul>
-        ${renderOptionTally('feel', 'Interaction feeling', FEEL_OPTS, records, seg.key)}
-        ${renderOtherList(records, seg.key, 'feelOther', 'Interaction feeling')}
+        ${renderOptionTally('feel', 'Engaging with us should feel like', FEEL_OPTS, records, seg.key)}
+        ${renderOtherList(records, seg.key, 'feelOther', 'Engaging with us should feel like')}
+        ${renderOptionTally('serve', 'The way we serve them', SERVE_OPTS, records, seg.key)}
+        ${renderOtherList(records, seg.key, 'serveOther', 'The way we serve them')}
+        ${renderOptionTally('channel', 'Preferred channel', CHANNEL_OPTS, records, seg.key)}
+        ${renderOtherList(records, seg.key, 'channelOther', 'Preferred channel')}
+        ${renderOptionTally('owner', 'Relationship owned by', OWNER_OPTS, records, seg.key)}
+        ${renderOtherList(records, seg.key, 'ownerOther', 'Relationship owned by')}
       </div>`;
   }).join('');
 }
@@ -526,16 +681,24 @@ function exportRound(round) {
           }
           if (a.benchmark) rows.push([r.name, seg.label, 'Aspiration Benchmark Statement', a.benchmark, new Date(r.submittedAt).toISOString()]);
         } else if (round === 'ambition') {
-          if (a.role) rows.push([r.name, seg.label, 'Role', a.role, new Date(r.submittedAt).toISOString()]);
-          if (a.promise) rows.push([r.name, seg.label, 'Promise', a.promise, new Date(r.submittedAt).toISOString()]);
-          if (a.feel && a.feel.length) rows.push([r.name, seg.label, 'feel', a.feel.join('; '), new Date(r.submittedAt).toISOString()]);
-          if (a.feelOther) rows.push([r.name, seg.label, 'feel (other)', a.feelOther, new Date(r.submittedAt).toISOString()]);
-        } else if (round === 'experience') {
-          ['serve','channel'].forEach(g => { if (a[g] && a[g].length) rows.push([r.name, seg.label, g, a[g].join('; '), new Date(r.submittedAt).toISOString()]); });
-          if (a.serveOther) rows.push([r.name, seg.label, 'serve (other)', a.serveOther, new Date(r.submittedAt).toISOString()]);
-          if (a.channelOther) rows.push([r.name, seg.label, 'channel (other)', a.channelOther, new Date(r.submittedAt).toISOString()]);
-          if (a.owner) rows.push([r.name, seg.label, 'owner', a.owner, new Date(r.submittedAt).toISOString()]);
-          if (a.ownerOther) rows.push([r.name, seg.label, 'owner (other)', a.ownerOther, new Date(r.submittedAt).toISOString()]);
+          const ts = new Date(r.submittedAt).toISOString();
+          if (a.role) rows.push([r.name, seg.label, 'Role', a.role, ts]);
+          if (a.promise) rows.push([r.name, seg.label, 'Promise', a.promise, ts]);
+          if (a.feel && a.feel.length) rows.push([r.name, seg.label, 'feel', a.feel.join('; '), ts]);
+          if (a.feelOther) rows.push([r.name, seg.label, 'feel (other)', a.feelOther, ts]);
+          if (a.serve && a.serve.length) rows.push([r.name, seg.label, 'serve', a.serve.join('; '), ts]);
+          if (a.serveOther) rows.push([r.name, seg.label, 'serve (other)', a.serveOther, ts]);
+          if (a.channel && a.channel.length) rows.push([r.name, seg.label, 'channel', a.channel.join('; '), ts]);
+          if (a.channelOther) rows.push([r.name, seg.label, 'channel (other)', a.channelOther, ts]);
+          if (a.owner) rows.push([r.name, seg.label, 'owner', a.owner, ts]);
+          if (a.ownerOther) rows.push([r.name, seg.label, 'owner (other)', a.ownerOther, ts]);
+        } else if (round === 'northstar') {
+          const ts = new Date(r.submittedAt).toISOString();
+          KPI_THEMES.forEach(th => {
+            (a[th.key] || []).forEach(it => {
+              rows.push([r.name, seg.label, th.label + ' \u2014 ' + it.kpi, it.target || '', ts]);
+            });
+          });
         } else if (round === 'emotion') {
           if (a.words && a.words.length) rows.push([r.name, seg.label, 'Emotions', a.words.join('; '), new Date(r.submittedAt).toISOString()]);
         }
@@ -567,7 +730,7 @@ function renderParticipant() {
   if (state.round === 'vision') body = visionForm();
   else if (state.round === 'ambition') body = tabbedForm('amb', ambitionPanel);
   else if (state.round === 'emotion') body = emotionForm();
-  else body = tabbedForm('exp', experiencePanel);
+  else body = tabbedForm('ns', northStarPanel);
 
   return `
     <div class="p-shell">
@@ -668,6 +831,7 @@ function updateVisionSlider(seg, val) {
 
 function tabbedForm(prefix, panelFn) {
   return `
+    <div class="group-note"><span>\u{1F465}</span><span><strong>Group activity.</strong> Fill in the tab for your group's segment only — the other three belong to the other groups.</span></div>
     <div class="seg-tabs" id="${prefix}Tabs">
       ${SEGMENTS.map((seg,i) => `
         <button type="button" class="seg-tab ${i===0?'active':''}" data-seg="${seg.key}" onclick="switchTab('${prefix}','${seg.key}')">
@@ -689,40 +853,172 @@ function chipGroup(seg, name, opts, multi, errId) {
 function ambitionPanel(seg) {
   return `
     <div class="card" style="margin-bottom:16px;padding:18px">
-      <label>We want to be their...? <span style="color:var(--danger)">*</span></label>
+      <div class="ns-intro">Align on the target ambition for this segment across all six levers.</div>
+
+      <label>We want to be their... <span style="color:var(--danger)">*</span></label>
+      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Role we play in their business?</div>
       <textarea id="amb_${seg.key}_role" placeholder="Role we play in their business" oninput="clearFieldErr(this)"></textarea>
       <div class="err" id="amb_${seg.key}_role_err">Please fill in this field.</div>
 
       <label style="margin-top:12px">One promise we make them... <span style="color:var(--danger)">*</span></label>
+      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Our commitment to them?</div>
       <textarea id="amb_${seg.key}_promise" placeholder="Our commitment to them" oninput="clearFieldErr(this)"></textarea>
       <div class="err" id="amb_${seg.key}_promise_err">Please fill in this field.</div>
 
-      <label style="margin-top:12px">How interacting with RAKEZ feels like... <span style="color:var(--danger)">*</span></label>
-      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Engaging with RAKEZ should feel Like...</div>
+      <label style="margin-top:12px">Engaging with us should feel like... <span style="color:var(--danger)">*</span></label>
+      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Engagement feeling with RAKEZ?</div>
       ${chipGroup(seg, 'feel', FEEL_OPTS, true, `amb_${seg.key}_feel_err`)}
       <input type="text" class="other-input" id="amb_${seg.key}_feel_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${seg.key}_feel_err')">
       <div class="err" id="amb_${seg.key}_feel_err">Select at least one option, or add your own via "Other".</div>
+
+      <label style="margin-top:12px">The way we serve them... <span style="color:var(--danger)">*</span></label>
+      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Serving preference for this segment?</div>
+      ${chipGroup(seg, 'serve', SERVE_OPTS, true, `amb_${seg.key}_serve_err`)}
+      <input type="text" class="other-input" id="amb_${seg.key}_serve_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${seg.key}_serve_err')">
+      <div class="err" id="amb_${seg.key}_serve_err">Select at least one option, or add your own via "Other".</div>
+
+      <label style="margin-top:12px">Preferred channel will be... <span style="color:var(--danger)">*</span></label>
+      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Preferred channels of interaction?</div>
+      ${chipGroup(seg, 'channel', CHANNEL_OPTS, true, `amb_${seg.key}_channel_err`)}
+      <input type="text" class="other-input" id="amb_${seg.key}_channel_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${seg.key}_channel_err')">
+      <div class="err" id="amb_${seg.key}_channel_err">Select at least one option, or add your own via "Other".</div>
+
+      <label style="margin-top:12px">Their relationship is owned by... <span style="color:var(--danger)">*</span></label>
+      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Who owns the responsibility of the segment?</div>
+      ${chipGroup(seg, 'owner', OWNER_OPTS, false, `amb_${seg.key}_owner_err`)}
+      <input type="text" class="other-input" id="amb_${seg.key}_owner_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${seg.key}_owner_err')">
+      <div class="err" id="amb_${seg.key}_owner_err">Select an option, or add your own via "Other".</div>
     </div>`;
 }
 
-function experiencePanel(seg) {
+/* ============================== NORTH STAR PANEL ============================== */
+function northStarPanel(seg) {
   return `
     <div class="card" style="margin-bottom:16px;padding:18px">
-      <label>How we serve this segment <span style="color:var(--danger)">*</span></label>
-      ${chipGroup(seg, 'serve', SERVE_OPTS, true, `exp_${seg.key}_serve_err`)}
-      <input type="text" class="other-input" id="exp_${seg.key}_serve_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('exp_${seg.key}_serve_err')">
-      <div class="err" id="exp_${seg.key}_serve_err">Select at least one option, or add your own via "Other".</div>
-
-      <label style="margin-top:12px">Prominent channel of interaction <span style="color:var(--danger)">*</span></label>
-      ${chipGroup(seg, 'channel', CHANNEL_OPTS, true, `exp_${seg.key}_channel_err`)}
-      <input type="text" class="other-input" id="exp_${seg.key}_channel_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('exp_${seg.key}_channel_err')">
-      <div class="err" id="exp_${seg.key}_channel_err">Select at least one option, or add your own via "Other".</div>
-
-      <label style="margin-top:12px">Ownership &amp; accountability <span style="color:var(--danger)">*</span></label>
-      ${chipGroup(seg, 'owner', OWNER_OPTS, false, `exp_${seg.key}_owner_err`)}
-      <input type="text" class="other-input" id="exp_${seg.key}_owner_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('exp_${seg.key}_owner_err')">
-      <div class="err" id="exp_${seg.key}_owner_err">Select an option, or add your own via "Other".</div>
+      <div class="ns-intro">Pick the KPIs that should define success for this segment — up to ${MAX_KPIS_PER_THEME} per theme — and set a target for each. Where we measure it today, the current figure is shown next to the KPI so the target is set against a real baseline.</div>
+      ${KPI_THEMES.map(th => northStarTheme(seg, th)).join('')}
     </div>`;
+}
+
+function northStarTheme(seg, th) {
+  const opts = KPI_CATALOGUE[th.key].filter(k => k.segs.indexOf(seg.key) !== -1);
+  return `
+    <div class="theme-block" data-seg="${seg.key}" data-theme="${th.key}">
+      <div class="theme-head">
+        <div class="th-ic">${th.icon}</div>
+        <h5>${th.label}</h5>
+        <span class="kpi-count" id="ns_${seg.key}_${th.key}_count">0 / ${MAX_KPIS_PER_THEME}</span>
+      </div>
+      <p class="theme-sub">${th.sub}</p>
+      ${opts.map((k, i) => kpiRow(seg, th, k, i)).join('')}
+      <div id="ns_${seg.key}_${th.key}_custom"></div>
+      <button type="button" class="add-kpi" onclick="addCustomKpi('${seg.key}','${th.key}')">+ Add your own KPI</button>
+      <div class="err" id="ns_${seg.key}_${th.key}_err">Pick at least one KPI for this theme.</div>
+    </div>`;
+}
+
+function kpiRow(seg, th, k, i) {
+  const base = baselineFor(k.name, seg.key);
+  const id = `ns_${seg.key}_${th.key}_${i}`;
+  const baseHtml = base
+    ? `<span class="kpi-base">Today ${escapeHtml(base.value)}${base.combined ? ' <em>(agents combined)</em>' : ''}</span>`
+    : '<span class="kpi-base none">Not measured today</span>';
+  return `
+    <div class="kpi-row" id="${id}" data-kpi="${escapeHtml(k.name)}">
+      <div class="kpi-head" onclick="toggleKpi('${id}','${seg.key}','${th.key}')">
+        <span class="kpi-tick"></span>
+        <span class="kpi-name">${escapeHtml(k.name)}</span>
+        ${baseHtml}
+      </div>
+      <div class="kpi-target">
+        <input type="text" class="target-input" id="${id}_t" placeholder="Target — ${TARGET_HINTS[k.unit]}" oninput="clearErrById('ns_${seg.key}_${th.key}_err')">
+      </div>
+    </div>`;
+}
+
+function themeBlockEl(segKey, themeKey) {
+  return document.querySelector(`.theme-block[data-seg="${segKey}"][data-theme="${themeKey}"]`);
+}
+
+function selectedKpiRows(segKey, themeKey) {
+  const block = themeBlockEl(segKey, themeKey);
+  return block ? Array.from(block.querySelectorAll('.kpi-row.on')) : [];
+}
+
+function kpiRowValues(row) {
+  const nameEl = row.querySelector('.custom-name');
+  const targetEl = row.querySelector('.target-input');
+  return {
+    kpi: nameEl ? nameEl.value.trim() : (row.dataset.kpi || ''),
+    target: targetEl ? targetEl.value.trim().replace(/[;|]/g, ',') : ''
+  };
+}
+
+function updateKpiCount(segKey, themeKey) {
+  const el = document.getElementById(`ns_${segKey}_${themeKey}_count`);
+  if (!el) return;
+  const n = selectedKpiRows(segKey, themeKey).length;
+  el.textContent = `${n} / ${MAX_KPIS_PER_THEME}`;
+  el.classList.toggle('full', n >= MAX_KPIS_PER_THEME);
+}
+
+function flashThemeLimit(segKey, themeKey) {
+  const err = document.getElementById(`ns_${segKey}_${themeKey}_err`);
+  if (!err) return;
+  err.textContent = `Up to ${MAX_KPIS_PER_THEME} KPIs per theme — deselect one first.`;
+  err.style.display = 'block';
+}
+
+function toggleKpi(id, segKey, themeKey) {
+  const row = document.getElementById(id);
+  if (!row) return;
+  const turningOn = !row.classList.contains('on');
+  if (turningOn && selectedKpiRows(segKey, themeKey).length >= MAX_KPIS_PER_THEME) {
+    flashThemeLimit(segKey, themeKey);
+    return;
+  }
+  row.classList.toggle('on', turningOn);
+  if (turningOn) { const t = document.getElementById(id + '_t'); if (t) t.focus(); }
+  updateKpiCount(segKey, themeKey);
+  clearErrById(`ns_${segKey}_${themeKey}_err`);
+}
+
+function addCustomKpi(segKey, themeKey) {
+  if (selectedKpiRows(segKey, themeKey).length >= MAX_KPIS_PER_THEME) {
+    flashThemeLimit(segKey, themeKey);
+    return;
+  }
+  const host = document.getElementById(`ns_${segKey}_${themeKey}_custom`);
+  if (!host) return;
+  const uid = `ns_${segKey}_${themeKey}_c${Math.random().toString(36).slice(2, 8)}`;
+  const div = document.createElement('div');
+  div.className = 'kpi-row on custom';
+  div.id = uid;
+  div.innerHTML = `
+    <div class="kpi-head" style="cursor:default">
+      <span class="kpi-tick"></span>
+      <input type="text" class="custom-name" id="${uid}_n" placeholder="Your own KPI" oninput="clearErrById('ns_${segKey}_${themeKey}_err')">
+      <button type="button" class="kpi-remove" title="Remove" onclick="removeCustomKpi('${uid}','${segKey}','${themeKey}')">&#10005;</button>
+    </div>
+    <div class="kpi-target">
+      <input type="text" class="target-input" id="${uid}_t" placeholder="Target — e.g. &#8805; 90%" oninput="clearErrById('ns_${segKey}_${themeKey}_err')">
+    </div>`;
+  host.appendChild(div);
+  const nameInput = document.getElementById(uid + '_n');
+  if (nameInput) nameInput.focus();
+  updateKpiCount(segKey, themeKey);
+  clearErrById(`ns_${segKey}_${themeKey}_err`);
+}
+
+function removeCustomKpi(uid, segKey, themeKey) {
+  const el = document.getElementById(uid);
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+  updateKpiCount(segKey, themeKey);
+}
+
+function currentTabSeg(prefix) {
+  const t = document.querySelector(`#${prefix}Tabs .seg-tab.active`);
+  return t ? t.dataset.seg : null;
 }
 
 function switchTab(prefix, seg) {
@@ -773,29 +1069,40 @@ function collectVisionAnswers() {
 function collectAmbitionAnswers() {
   const answers = {};
   SEGMENTS.forEach(seg => {
+    const panel = document.querySelector(`#ambPanels .seg-panel[data-seg="${seg.key}"]`);
     const role = document.getElementById(`amb_${seg.key}_role`).value.trim();
     const promise = document.getElementById(`amb_${seg.key}_promise`).value.trim();
-    const panel = document.querySelector(`#ambPanels .seg-panel[data-seg="${seg.key}"]`);
     const feel = Array.from(panel.querySelectorAll(`input[name="${seg.key}_feel"]:checked`)).map(i=>i.value);
     const feelOther = document.getElementById(`amb_${seg.key}_feel_other`).value.trim();
-    if (role || promise || feel.length || feelOther) answers[seg.key] = { role, promise, feel, feelOther };
+    const serve = Array.from(panel.querySelectorAll(`input[name="${seg.key}_serve"]:checked`)).map(i=>i.value);
+    const serveOther = document.getElementById(`amb_${seg.key}_serve_other`).value.trim();
+    const channel = Array.from(panel.querySelectorAll(`input[name="${seg.key}_channel"]:checked`)).map(i=>i.value);
+    const channelOther = document.getElementById(`amb_${seg.key}_channel_other`).value.trim();
+    const ownerEl = panel.querySelector(`input[name="${seg.key}_owner"]:checked`);
+    const ownerOther = document.getElementById(`amb_${seg.key}_owner_other`).value.trim();
+    if (role || promise || feel.length || feelOther || serve.length || serveOther || channel.length || channelOther || ownerEl || ownerOther) {
+      answers[seg.key] = {
+        role, promise, feel, feelOther, serve, serveOther, channel, channelOther,
+        owner: ownerEl ? ownerEl.value : null, ownerOther
+      };
+    }
   });
   return answers;
 }
 
-function collectExperienceAnswers() {
+function collectNorthStarAnswers() {
   const answers = {};
   SEGMENTS.forEach(seg => {
-    const panel = document.querySelector(`#expPanels .seg-panel[data-seg="${seg.key}"]`);
-    const serve = Array.from(panel.querySelectorAll(`input[name="${seg.key}_serve"]:checked`)).map(i=>i.value);
-    const serveOther = document.getElementById(`exp_${seg.key}_serve_other`).value.trim();
-    const channel = Array.from(panel.querySelectorAll(`input[name="${seg.key}_channel"]:checked`)).map(i=>i.value);
-    const channelOther = document.getElementById(`exp_${seg.key}_channel_other`).value.trim();
-    const ownerEl = panel.querySelector(`input[name="${seg.key}_owner"]:checked`);
-    const ownerOther = document.getElementById(`exp_${seg.key}_owner_other`).value.trim();
-    if (serve.length || serveOther || channel.length || channelOther || ownerEl || ownerOther) {
-      answers[seg.key] = { serve, serveOther, channel, channelOther, owner: ownerEl ? ownerEl.value : null, ownerOther };
-    }
+    const segOut = {};
+    let any = false;
+    KPI_THEMES.forEach(th => {
+      const items = selectedKpiRows(seg.key, th.key)
+        .map(kpiRowValues)
+        .filter(v => v.kpi);
+      segOut[th.key] = items;
+      if (items.length) any = true;
+    });
+    if (any) answers[seg.key] = segOut;
   });
   return answers;
 }
@@ -842,54 +1149,121 @@ function validateVision() {
   return valid;
 }
 
-function validateAmbition() {
-  let valid = true;
-  let firstInvalidSeg = null;
-  SEGMENTS.forEach(seg => {
-    const panel = document.querySelector(`#ambPanels .seg-panel[data-seg="${seg.key}"]`);
-    const role = document.getElementById(`amb_${seg.key}_role`).value.trim();
-    const promise = document.getElementById(`amb_${seg.key}_promise`).value.trim();
-    const feelChecked = panel.querySelectorAll(`input[name="${seg.key}_feel"]:checked`).length > 0;
-    const feelOther = document.getElementById(`amb_${seg.key}_feel_other`).value.trim().length > 0;
-    let segInvalid = false;
-
-    if (!role) { document.getElementById(`amb_${seg.key}_role_err`).style.display = 'block'; segInvalid = true; }
-    if (!promise) { document.getElementById(`amb_${seg.key}_promise_err`).style.display = 'block'; segInvalid = true; }
-    if (!feelChecked && !feelOther) { document.getElementById(`amb_${seg.key}_feel_err`).style.display = 'block'; segInvalid = true; }
-
-    if (segInvalid) { valid = false; if (!firstInvalidSeg) firstInvalidSeg = seg.key; }
-  });
-  if (firstInvalidSeg) {
-    switchTab('amb', firstInvalidSeg);
-    const ambEl = document.querySelector(`#ambPanels .seg-panel[data-seg="${firstInvalidSeg}"]`); if (ambEl && ambEl.scrollIntoView) ambEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-  return valid;
+/* Group activity: each group answers for its own segment only. A segment
+   counts as "started" as soon as any one of its six levers is filled; every
+   started segment must then be complete, and at least one must be. Untouched
+   segments are left alone — they belong to the other groups. */
+function ambitionSegmentState(segKey) {
+  const panel = document.querySelector(`#ambPanels .seg-panel[data-seg="${segKey}"]`);
+  const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  return {
+    role:    !!val(`amb_${segKey}_role`),
+    promise: !!val(`amb_${segKey}_promise`),
+    feel:    panel.querySelectorAll(`input[name="${segKey}_feel"]:checked`).length > 0 || !!val(`amb_${segKey}_feel_other`),
+    serve:   panel.querySelectorAll(`input[name="${segKey}_serve"]:checked`).length > 0 || !!val(`amb_${segKey}_serve_other`),
+    channel: panel.querySelectorAll(`input[name="${segKey}_channel"]:checked`).length > 0 || !!val(`amb_${segKey}_channel_other`),
+    owner:   !!panel.querySelector(`input[name="${segKey}_owner"]:checked`) || !!val(`amb_${segKey}_owner_other`)
+  };
 }
 
-function validateExperience() {
-  let valid = true;
+const AMBITION_FIELDS = ['role','promise','feel','serve','channel','owner'];
+
+function validateAmbition() {
   let firstInvalidSeg = null;
+  let completed = 0;
+  let anyStarted = false;
+
   SEGMENTS.forEach(seg => {
-    const panel = document.querySelector(`#expPanels .seg-panel[data-seg="${seg.key}"]`);
-    const serveChecked = panel.querySelectorAll(`input[name="${seg.key}_serve"]:checked`).length > 0;
-    const serveOther = document.getElementById(`exp_${seg.key}_serve_other`).value.trim().length > 0;
-    const channelChecked = panel.querySelectorAll(`input[name="${seg.key}_channel"]:checked`).length > 0;
-    const channelOther = document.getElementById(`exp_${seg.key}_channel_other`).value.trim().length > 0;
-    const ownerChecked = !!panel.querySelector(`input[name="${seg.key}_owner"]:checked`);
-    const ownerOther = document.getElementById(`exp_${seg.key}_owner_other`).value.trim().length > 0;
+    const state = ambitionSegmentState(seg.key);
+    if (!AMBITION_FIELDS.some(f => state[f])) return;   // untouched — another group's segment
+    anyStarted = true;
+
     let segInvalid = false;
+    AMBITION_FIELDS.forEach(f => {
+      if (state[f]) return;
+      const err = document.getElementById(`amb_${seg.key}_${f}_err`);
+      if (err) err.style.display = 'block';
+      segInvalid = true;
+    });
 
-    if (!serveChecked && !serveOther) { document.getElementById(`exp_${seg.key}_serve_err`).style.display = 'block'; segInvalid = true; }
-    if (!channelChecked && !channelOther) { document.getElementById(`exp_${seg.key}_channel_err`).style.display = 'block'; segInvalid = true; }
-    if (!ownerChecked && !ownerOther) { document.getElementById(`exp_${seg.key}_owner_err`).style.display = 'block'; segInvalid = true; }
-
-    if (segInvalid) { valid = false; if (!firstInvalidSeg) firstInvalidSeg = seg.key; }
+    if (segInvalid) { if (!firstInvalidSeg) firstInvalidSeg = seg.key; }
+    else completed++;
   });
-  if (firstInvalidSeg) {
-    switchTab('exp', firstInvalidSeg);
-    const expEl = document.querySelector(`#expPanels .seg-panel[data-seg="${firstInvalidSeg}"]`); if (expEl && expEl.scrollIntoView) expEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  if (!anyStarted) {
+    const segKey = currentTabSeg('amb') || SEGMENTS[0].key;
+    AMBITION_FIELDS.forEach(f => {
+      const err = document.getElementById(`amb_${segKey}_${f}_err`);
+      if (err) err.style.display = 'block';
+    });
+    switchTab('amb', segKey);
+    const el = document.querySelector(`#ambPanels .seg-panel[data-seg="${segKey}"]`);
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return false;
   }
-  return valid;
+
+  if (firstInvalidSeg) {
+    switchTab('amb', firstInvalidSeg);
+    const el = document.querySelector(`#ambPanels .seg-panel[data-seg="${firstInvalidSeg}"]`);
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return false;
+  }
+
+  return completed > 0;
+}
+
+/* A segment counts as "started" the moment one KPI is picked anywhere in it.
+   Every started segment must then be complete: all three themes with at least
+   one KPI, and a target on every KPI picked. Groups working a single segment
+   therefore only fill their own; nobody is forced through all four. */
+function validateNorthStar() {
+  let firstInvalidSeg = null;
+  let completed = 0;
+  let anyStarted = false;
+
+  SEGMENTS.forEach(seg => {
+    const rowsPerTheme = KPI_THEMES.map(th => selectedKpiRows(seg.key, th.key));
+    if (!rowsPerTheme.some(rows => rows.length)) return;
+    anyStarted = true;
+
+    let segInvalid = false;
+    KPI_THEMES.forEach((th, i) => {
+      const rows = rowsPerTheme[i];
+      const err = document.getElementById(`ns_${seg.key}_${th.key}_err`);
+      if (!rows.length) {
+        if (err) { err.textContent = 'Pick at least one KPI for this theme.'; err.style.display = 'block'; }
+        segInvalid = true;
+        return;
+      }
+      const incomplete = rows.some(row => { const v = kpiRowValues(row); return !v.kpi || !v.target; });
+      if (incomplete) {
+        if (err) { err.textContent = 'Every KPI you pick needs a name and a target.'; err.style.display = 'block'; }
+        segInvalid = true;
+      }
+    });
+
+    if (segInvalid) { if (!firstInvalidSeg) firstInvalidSeg = seg.key; }
+    else completed++;
+  });
+
+  if (!anyStarted) {
+    const segKey = currentTabSeg('ns') || SEGMENTS[0].key;
+    const err = document.getElementById(`ns_${segKey}_experience_err`);
+    if (err) { err.textContent = 'Pick at least one KPI for this theme.'; err.style.display = 'block'; }
+    switchTab('ns', segKey);
+    const el = themeBlockEl(segKey, 'experience');
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+
+  if (firstInvalidSeg) {
+    switchTab('ns', firstInvalidSeg);
+    const el = document.querySelector(`#nsPanels .seg-panel[data-seg="${firstInvalidSeg}"]`);
+    if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return false;
+  }
+
+  return completed > 0;
 }
 
 async function submitParticipant() {
@@ -911,8 +1285,8 @@ async function submitParticipant() {
     if (!validateEmotion()) return;
     answers = collectEmotionAnswers();
   } else {
-    if (!validateExperience()) return;
-    answers = collectExperienceAnswers();
+    if (!validateNorthStar()) return;
+    answers = collectNorthStarAnswers();
   }
 
   const btn = document.querySelector('.submit-bar button');
