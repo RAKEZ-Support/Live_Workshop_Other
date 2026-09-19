@@ -336,7 +336,7 @@ const KPI_CATALOGUE = {
    rather than an invented number or a label pointing at the gap. */
 const KPI_BASELINES = {
   'Overall CSAT':                  { ni:'88%', ind:'91%', lta:'81%', sa:'83%' },
-  'Customer Effort Score (CES)':   { all:'60 overall (registration)' },
+  'Customer Effort Score (CES)':   { all:'60 overall (onboarding)' },
   'NPS':                           { all:'64' },
   'Positive Sentiment':            { ni:'44%', ind:'48%', agents:'46%' },
   'Opportunity Conversion Rate':   { all:'15% overall' },
@@ -403,7 +403,7 @@ const state = {
 /* ============================== STORAGE HELPERS (Google Sheet backend) ============================== */
 // 1. Create a Google Sheet, add the Apps Script from the setup guide, deploy it as a Web App
 //    ("Execute as: Me", "Who has access: Anyone"), then paste the deployment URL below.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby8mkH_r89POVxlIhjs5Mis9aUBq4C9a48dYD14CRLBsm7KUAonuUrb1gl0AhOhfB98/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgw4ftJ5prh-ek4hA27wmPDzzf_5kZGY_3vUCMcI8z-yk8KnF8-L9s_cMmC1kKVlfV/exec';
 
 function backendConfigured() {
   return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.startsWith('PASTE_YOUR');
