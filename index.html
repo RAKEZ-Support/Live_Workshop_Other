@@ -278,10 +278,15 @@ function levelForScore(score) {
   if (band > 4) band = 4;
   return { name: LEVELS[band], color: LEVEL_COLORS[band] };
 }
-const SERVE_OPTS   = ['Digital-First','Self-Serve','Relationship-Led','Priority Support','Guided Assistance'];
-const CHANNEL_OPTS = ['Portal','Email','Call','Mobile App','Key Accounts','WhatsApp'];
-const FEEL_OPTS    = ['Consultative','Proactive','Technical','Intuitive','Fast','Guided','Transparent','SLA-Driven','Empathetic','Reliable'];
-const OWNER_OPTS   = ['Contact Center Enabled Support','Dedicated Account Manager','Hybrid Model'];
+const SERVE_OPTS   = ['Digital-First','Self-Serve','Relationship-Led','Priority Support','Guided Assistance','Agentic (AI completes the task)'];
+// The last channel differs by segment: the two customer segments reach a key
+// account desk, the two agent segments reach their account manager.
+const CHANNEL_OPTS_BASE = ['Portal','Email','Call','Mobile App','WhatsApp','Conversational AI'];
+function channelOptsFor(segKey) {
+  return CHANNEL_OPTS_BASE.concat([(segKey === 'ni' || segKey === 'ind') ? 'Key Accounts' : 'Account Manager']);
+}
+const FEEL_OPTS    = ['Fast','Intuitive','Transparent','Reliable','Guided','Technical','SLA-Driven','Empathetic','Always-on (AI Driven)','Consultative','Proactive'];
+const OWNER_OPTS   = ['Contact Center Enabled Support','Dedicated Account Manager','Hybrid Model','AI First with Human in the Loop','AI Only (Agentic)'];
 
 /* ---------- North Star: KPI catalogue, per-theme, filtered per segment ---------- */
 const ALL_SEGS = ['ni','ind','lta','sa'];
@@ -323,8 +328,8 @@ const KPI_CATALOGUE = {
 /* Current-state baselines. Split by segment where the scorecard splits them,
    `all` where the measure is organisation-wide. The scorecard reports ONE
    combined Agents column, so both agent segments show the same figure and it
-   is labelled as combined. KPIs absent from here show "Not measured today"
-   rather than an invented number. */
+   is labelled as combined. A KPI absent from here shows no baseline at all,
+   rather than an invented number or a label pointing at the gap. */
 const KPI_BASELINES = {
   'Overall CSAT':                  { ni:'88%', ind:'91%', lta:'81%', sa:'83%' },
   'Customer Effort Score (CES)':   { all:'60 overall (registration)' },
@@ -377,7 +382,7 @@ const state = {
 /* ============================== STORAGE HELPERS (Google Sheet backend) ============================== */
 // 1. Create a Google Sheet, add the Apps Script from the setup guide, deploy it as a Web App
 //    ("Execute as: Me", "Who has access: Anyone"), then paste the deployment URL below.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzwO-3JPniI8bz47R4wWiti-fvVB6HsRJq_ItzKy0cl8nOn6Asrt4z3ctu1eskgCpSb/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwPs-RLg8wGvgZNsaFkfTB_9e-4EmXYPx-aM2wtxhDgC2Zo2hQFIi3kw25ww2q8j6CO/exec';
 
 function backendConfigured() {
   return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.startsWith('PASTE_YOUR');
@@ -684,9 +689,7 @@ function renderNorthStarSummary(records) {
               <span class="ns-kpi-name">${escapeHtml(row.kpi)}</span>
               <span class="ns-kpi-target${lead ? '' : ' none'}">${lead ? escapeHtml(lead) : 'no target'}</span>
             </div>
-            <div class="ns-kpi-base">${base
-              ? `Today ${escapeHtml(base.value)}${lead ? movementChip(base.value, lead) : ''}`
-              : 'Not measured today'}</div>
+            ${base ? `<div class="ns-kpi-base">Today ${escapeHtml(base.value)}${lead ? movementChip(base.value, lead) : ''}</div>` : ''}
             ${alts.length ? `<div class="ns-alt">Also proposed: <b>${escapeHtml(alts.join(', '))}</b></div>` : ''}
           </div>`;
       }).join('') : '<div class="ns-empty">Nothing picked yet.</div>';
@@ -756,7 +759,7 @@ function renderAmbitionSummary(records) {
         ${renderOtherList(records, seg.key, 'feelOther', 'Engaging with us should feel like')}
         ${renderOptionTally('serve', 'The way we serve them', SERVE_OPTS, records, seg.key)}
         ${renderOtherList(records, seg.key, 'serveOther', 'The way we serve them')}
-        ${renderOptionTally('channel', 'Preferred channel', CHANNEL_OPTS, records, seg.key)}
+        ${renderOptionTally('channel', 'Preferred channel', channelOptsFor(seg.key), records, seg.key)}
         ${renderOtherList(records, seg.key, 'channelOther', 'Preferred channel')}
         ${renderOptionTally('owner', 'Relationship owned by', OWNER_OPTS, records, seg.key)}
         ${renderOtherList(records, seg.key, 'ownerOther', 'Relationship owned by')}
@@ -1012,7 +1015,7 @@ function ambitionPanel(seg) {
         <div class="err" id="amb_${k}_serve_err">Select at least one option, or add your own via "Other".</div>`)}
 
       ${qCard(5, 'Preferred channel will be...', `
-        ${chipGroup(seg, 'channel', CHANNEL_OPTS, true, `amb_${k}_channel_err`)}
+        ${chipGroup(seg, 'channel', channelOptsFor(seg.key), true, `amb_${k}_channel_err`)}
         <input type="text" class="other-input" id="amb_${k}_channel_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${k}_channel_err')">
         <div class="err" id="amb_${k}_channel_err">Select at least one option, or add your own via "Other".</div>`)}
 
@@ -1053,9 +1056,11 @@ function northStarTheme(seg, th, num) {
 function kpiRow(seg, th, k, i) {
   const base = baselineFor(k.name, seg.key);
   const id = `ns_${seg.key}_${th.key}_${i}`;
+  // Where there is no baseline the row simply shows nothing — an explicit
+  // "not measured" label drew the eye to the absence.
   const baseHtml = base
     ? `<span class="kpi-base">Today ${escapeHtml(base.value)}${base.combined ? ' <em>(agents combined)</em>' : ''}</span>`
-    : '<span class="kpi-base none">Not measured today</span>';
+    : '';
   return `
     <div class="kpi-row" id="${id}" data-kpi="${escapeHtml(k.name)}">
       <div class="kpi-head" onclick="toggleKpi('${id}','${seg.key}','${th.key}')">
