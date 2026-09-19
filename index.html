@@ -213,8 +213,12 @@
   .ns-kpi-name { font-size:.85rem; font-weight:650; color:var(--text-main); line-height:1.35; }
   .ns-kpi-target { font-size:1rem; font-weight:800; color:var(--primary-dark); white-space:nowrap; }
   .ns-kpi-target.none { font-size:.78rem; font-weight:600; color:var(--text-muted); }
-  .ns-kpi-base { margin-top:5px; font-size:.73rem; color:var(--text-muted); line-height:1.5; }
-  .ns-delta { display:inline-block; margin-left:7px; padding:1px 8px; border-radius:999px; background:#eef2f5; color:#475569; font-weight:700; font-size:.7rem; }
+  /* The movement chip sits under the target it belongs to, right-aligned.
+     Inline after the baseline it read as a change TO the baseline, which made
+     the baseline look larger than the target. */
+  .ns-kpi-base { margin-top:5px; font-size:.73rem; color:var(--text-muted); line-height:1.5;
+                 display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+  .ns-delta { flex:none; padding:1px 8px; border-radius:999px; background:#eef2f5; color:#475569; font-weight:700; font-size:.7rem; }
   .ns-alt { margin-top:6px; font-size:.72rem; color:var(--text-muted); }
   .ns-alt b { color:var(--text-main); font-weight:650; }
   .ns-card .ns-empty { font-size:.78rem; color:var(--text-muted); padding:10px 0; }
@@ -346,10 +350,27 @@ const KPI_BASELINES = {
   'Email Response Time':           { all:'8 hrs' },
 };
 
+// Responses submitted before the KPI list was revised carry the old names.
+// Without this, a row stored as "CSAT" no longer matches the "Overall CSAT"
+// baseline and renders blank, which looks like a missing figure rather than
+// a renamed KPI.
+const KPI_ALIASES = {
+  'CSAT': 'Overall CSAT',
+  'Positive Perception': 'Positive Sentiment',
+  'Positive Partner Perception': 'Positive Sentiment',
+  'KAM / Advisory Satisfaction': 'KAM Satisfaction %',
+  'New Client Registration Growth': 'New Client Registration Growth %',
+  'New Client Growth': 'New Client Registration Growth %'
+};
+
+function canonicalKpi(name) {
+  return KPI_ALIASES[name] || name;
+}
+
 // A segment's own figure wins; `agents` is the fallback for the two agent
 // segments where the source only reports them combined.
 function baselineFor(kpiName, segKey) {
-  const b = KPI_BASELINES[kpiName];
+  const b = KPI_BASELINES[canonicalKpi(kpiName)];
   if (!b) return null;
   if (b.all) return { value: b.all, combined: false };
   if (b[segKey]) return { value: b[segKey], combined: false };
@@ -382,7 +403,7 @@ const state = {
 /* ============================== STORAGE HELPERS (Google Sheet backend) ============================== */
 // 1. Create a Google Sheet, add the Apps Script from the setup guide, deploy it as a Web App
 //    ("Execute as: Me", "Who has access: Anyone"), then paste the deployment URL below.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwPs-RLg8wGvgZNsaFkfTB_9e-4EmXYPx-aM2wtxhDgC2Zo2hQFIi3kw25ww2q8j6CO/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby8mkH_r89POVxlIhjs5Mis9aUBq4C9a48dYD14CRLBsm7KUAonuUrb1gl0AhOhfB98/exec';
 
 function backendConfigured() {
   return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.startsWith('PASTE_YOUR');
@@ -662,10 +683,11 @@ function renderNorthStarSummary(records) {
       KPI_THEMES.forEach(th => {
         (segAns[th.key] || []).forEach(it => {
           if (!counted) { participants++; counted = true; }
-          const bucket = themes[th.key][it.kpi] || { kpi: it.kpi, count: 0, targets: [] };
+          const name = canonicalKpi(it.kpi);
+          const bucket = themes[th.key][name] || { kpi: name, count: 0, targets: [] };
           bucket.count++;
           if (it.target) bucket.targets.push(it.target);
-          themes[th.key][it.kpi] = bucket;
+          themes[th.key][name] = bucket;
         });
       });
     });
@@ -689,7 +711,7 @@ function renderNorthStarSummary(records) {
               <span class="ns-kpi-name">${escapeHtml(row.kpi)}</span>
               <span class="ns-kpi-target${lead ? '' : ' none'}">${lead ? escapeHtml(lead) : 'no target'}</span>
             </div>
-            ${base ? `<div class="ns-kpi-base">Today ${escapeHtml(base.value)}${lead ? movementChip(base.value, lead) : ''}</div>` : ''}
+            ${base ? `<div class="ns-kpi-base"><span>Today ${escapeHtml(base.value)}</span>${lead ? movementChip(base.value, lead) : ''}</div>` : ''}
             ${alts.length ? `<div class="ns-alt">Also proposed: <b>${escapeHtml(alts.join(', '))}</b></div>` : ''}
           </div>`;
       }).join('') : '<div class="ns-empty">Nothing picked yet.</div>';
