@@ -87,7 +87,8 @@
   .empty-state { text-align:center; color:var(--text-muted); font-size:.85rem; padding:24px 10px; }
 
   /* ---- participant form ---- */
-  .p-shell { max-width:560px; margin:0 auto; padding:20px 16px 60px; }
+  .p-shell { max-width:600px; margin:0 auto; padding:20px 16px 60px; }
+  .p-namerow { max-width:520px; margin-bottom:20px; }
   .p-head { text-align:center; margin-bottom:18px; }
   .p-head .rnd-icon { font-size:2.2rem; }
   .p-head h2 { font-size:1.3rem; margin-top:6px; }
@@ -141,6 +142,18 @@
   .slider-ticks { display:flex; justify-content:space-between; font-size:.66rem; font-weight:700; color:#aab2bf; padding:0 2px; font-variant-numeric:tabular-nums; }
 
   .submit-bar { position:sticky; bottom:0; background:linear-gradient(180deg, transparent, var(--bg) 30%); padding:16px 0 4px; margin-top:10px; }
+  .submit-bar .inner { max-width:420px; margin:0 auto; }
+
+  /* ---- numbered question cards (rounds 3 and 4) ---- */
+  .q-grid { display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:16px; }
+  .q-card { background:#fff; border:1px solid var(--hairline); border-radius:14px; padding:17px 18px 18px; }
+  .q-head { display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; }
+  .q-num { flex-shrink:0; width:24px; height:24px; border-radius:8px; background:var(--light-teal); color:var(--primary-dark);
+           font-size:.76rem; font-weight:800; display:flex; align-items:center; justify-content:center; }
+  .q-head h4 { margin:0; font-size:.93rem; font-weight:700; line-height:1.4; color:var(--text-main); }
+  .q-head .req { color:var(--danger); }
+  .q-card textarea { min-height:78px; }
+  .ns-themes { display:grid; grid-template-columns:1fr; gap:14px; }
   button.primary { width:100%; background:var(--primary-gradient); color:#fff; border:none; padding:15px; border-radius:12px; font-weight:800; font-size:.98rem; cursor:pointer; box-shadow:var(--shadow-lift); }
   .done-box { text-align:center; padding:50px 16px; }
   .done-icon { width:64px; height:64px; border-radius:50%; background:#d1fae5; color:#10b981; display:flex; align-items:center; justify-content:center; font-size:1.8rem; margin:0 auto 16px; }
@@ -157,7 +170,7 @@
   .theme-head h5 { margin:0; font-family:var(--font-display); font-weight:600; font-size:1rem; color:var(--primary-dark); }
   .kpi-count { margin-left:auto; font-size:.72rem; font-weight:800; color:var(--text-muted); }
   .kpi-count.full { color:var(--danger); }
-  .theme-sub { font-size:.74rem; color:var(--text-muted); margin:2px 0 12px 39px; }
+  .theme-sub { font-size:.74rem; color:var(--text-muted); margin:2px 0 12px 73px; }
   .kpi-row { border:1.5px solid var(--hairline); border-radius:11px; background:#fff; margin-bottom:8px; transition:.15s; }
   .kpi-row.on { border-color:var(--accent-teal); box-shadow:0 0 0 3px rgba(0,168,150,.10); }
   .kpi-head { display:flex; align-items:center; gap:10px; padding:11px 13px; cursor:pointer; }
@@ -206,6 +219,30 @@
   .ns-alt b { color:var(--text-main); font-weight:650; }
   .ns-card .ns-empty { font-size:.78rem; color:var(--text-muted); padding:10px 0; }
   .ns-waiting { padding:22px; text-align:center; font-size:.82rem; color:var(--text-muted); }
+
+  /* Desktop is not a stretched phone: the shell widens, questions pair up
+     two across, chip options run three across, and the three North Star
+     themes sit side by side the way they do on the slide. */
+  @media (min-width:760px){
+    .chip-grid { grid-template-columns:repeat(3,1fr); }
+  }
+  @media (min-width:960px){
+    .p-shell { max-width:1080px; padding:30px 28px 72px; }
+    .p-head { margin-bottom:24px; }
+    .p-head .rnd-icon { font-size:2.6rem; }
+    .p-head h2 { font-size:1.65rem; }
+    .p-head p { font-size:.95rem; max-width:680px; margin-left:auto; margin-right:auto; }
+    .q-grid { grid-template-columns:1fr 1fr; gap:16px; }
+    .q-card { padding:20px 22px 22px; }
+    .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+    .form-grid > .vision-card { margin-bottom:0; }
+    .group-note { font-size:.84rem; padding:13px 18px; }
+    .seg-tab .segment-badge { font-size:.85rem; }
+  }
+  @media (min-width:1180px){
+    .ns-themes { grid-template-columns:repeat(3,1fr); align-items:start; }
+    .theme-block { margin-bottom:0; }
+  }
 
   @media (max-width:900px){
     .ns-grid { grid-template-columns:1fr; }
@@ -260,23 +297,17 @@ const KPI_THEMES = [
 // so people can write "\u2265 90%", "\u2264 3 days" or "top quartile" as they wish.
 const KPI_CATALOGUE = {
   experience: [
-    { name:'CSAT',                          unit:'pct',   segs:ALL_SEGS },
-    { name:'Customer Effort Score (CES)',   unit:'score', segs:ALL_SEGS },
-    { name:'NPS',                           unit:'score', segs:ALL_SEGS },
-    { name:'Positive Perception',           unit:'pct',   segs:['ni','ind'] },
-    { name:'Positive Partner Perception',   unit:'pct',   segs:['lta','sa'] },
-    { name:'Portal Adoption',               unit:'pct',   segs:ALL_SEGS },
-    { name:'KAM / Advisory Satisfaction',   unit:'pct',   segs:['ind','sa'] },
+    { name:'Overall CSAT',                    unit:'pct',   segs:ALL_SEGS },
+    { name:'Customer Effort Score (CES)',     unit:'score', segs:ALL_SEGS },
+    { name:'NPS',                             unit:'score', segs:ALL_SEGS },
+    { name:'Positive Sentiment',              unit:'pct',   segs:ALL_SEGS },
+    { name:'KAM Satisfaction %',              unit:'pct',   segs:['ind'] },
+    { name:'Account Manager Satisfaction %',  unit:'pct',   segs:['sa'] },
   ],
   commercial: [
-    { name:'Opportunity Conversion Rate',    unit:'pct', segs:['ni','ind'] },
-    { name:'Renewal Rate',                   unit:'pct', segs:ALL_SEGS },
-    { name:'New Client Registration Growth', unit:'pct', segs:['ni','ind'] },
-    { name:'New Client Growth',              unit:'pct', segs:['lta','sa'] },
-    { name:'Expansion / Upsell Pipeline',    unit:'pct', segs:['ni','ind'] },
-    { name:'VAS Uptake',                     unit:'pct', segs:ALL_SEGS },
-    { name:'Agent Churn',                    unit:'pct', segs:['lta','sa'] },
-    { name:'Share of Business',              unit:'pct', segs:['lta','sa'] },
+    { name:'Opportunity Conversion Rate',      unit:'pct', segs:['ni','ind'] },
+    { name:'Renewal Rate',                     unit:'pct', segs:ALL_SEGS },
+    { name:'New Client Registration Growth %', unit:'pct', segs:ALL_SEGS },
   ],
   operational: [
     { name:'Licensing TAT',                  unit:'days', segs:ALL_SEGS },
@@ -295,9 +326,12 @@ const KPI_CATALOGUE = {
    is labelled as combined. KPIs absent from here show "Not measured today"
    rather than an invented number. */
 const KPI_BASELINES = {
-  'CSAT':                          { ni:'Lic 88% / Visa 85% / Ren 88% / Amd 87%',
-                                     ind:'Lic 95% / Visa 93% / Ren 95% / Amd 81%',
-                                     agents:'Lic 85% / Visa 83% / Ren 87% / Amd 88%' },
+  'Overall CSAT':                  { ni:'88%', ind:'91%', lta:'81%', sa:'83%' },
+  'Customer Effort Score (CES)':   { all:'60 overall (registration)' },
+  'NPS':                           { all:'64' },
+  'Positive Sentiment':            { ni:'44%', ind:'48%', agents:'46%' },
+  'Opportunity Conversion Rate':   { all:'15% overall' },
+  'Renewal Rate':                  { ni:'71%', ind:'92%', lta:'72%', sa:'57%' },
   'Licensing TAT':                 { ni:'2 days',  ind:'11 days', agents:'2.5 days' },
   'Visa TAT':                      { ni:'5 days',  ind:'6 days',  agents:'5 days' },
   'Renewal TAT':                   { ni:'2 days',  ind:'3 days',  agents:'2.5 days' },
@@ -305,24 +339,23 @@ const KPI_BASELINES = {
   'First Contact Resolution (FCR)':{ all:'75%' },
   'Average Handling Time (AHT)':   { all:'8 mins' },
   'Email Response Time':           { all:'8 hrs' },
-  'NPS':                           { all:'64' },
-  'Customer Effort Score (CES)':   { all:'60' },
-  'Opportunity Conversion Rate':   { all:'12%' },
-  'VAS Uptake':                    { all:'6%' },
 };
 
+// A segment's own figure wins; `agents` is the fallback for the two agent
+// segments where the source only reports them combined.
 function baselineFor(kpiName, segKey) {
   const b = KPI_BASELINES[kpiName];
   if (!b) return null;
   if (b.all) return { value: b.all, combined: false };
-  if (segKey === 'lta' || segKey === 'sa') return b.agents ? { value: b.agents, combined: true } : null;
-  return b[segKey] ? { value: b[segKey], combined: false } : null;
+  if (b[segKey]) return { value: b[segKey], combined: false };
+  if ((segKey === 'lta' || segKey === 'sa') && b.agents) return { value: b.agents, combined: true };
+  return null;
 }
 
 const TARGET_HINTS = { pct:'e.g. \u2265 90%', score:'e.g. \u2265 65', days:'e.g. \u2264 3 days', mins:'e.g. \u2264 6 mins', hrs:'e.g. \u2264 4 hrs' };
 
 const ROUNDS = {
-  vision:    { key:'vision',    label:'Define the Aspiration', icon:'🧭', desc:'Where should each segment sit on the experience spectrum by 2029?' },
+  vision:    { key:'vision',    label:'Define the Vision', icon:'🧭', desc:'Where should each segment sit on the experience spectrum by 2029?' },
   emotion:   { key:'emotion',   label:'Define the Emotion',    icon:'💗', desc:'What 3 emotions should customers feel about RAKEZ after every interaction?' },
   ambition:  { key:'ambition',  label:'Defining the Ambition', icon:'🤝', desc:'Group activity — align the target ambition for your own segment across six levers.' },
   northstar: { key:'northstar', label:'Define the North Star',  icon:'🎯', desc:'Group activity — choose the KPIs that define success for your own segment, and set a target against today.' },
@@ -344,7 +377,7 @@ const state = {
 /* ============================== STORAGE HELPERS (Google Sheet backend) ============================== */
 // 1. Create a Google Sheet, add the Apps Script from the setup guide, deploy it as a Web App
 //    ("Execute as: Me", "Who has access: Anyone"), then paste the deployment URL below.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwoJ_YfccwqP4m484gY1G4RZeacfNEFQlFvBA8r_t4xxaw-Poy0_VOEjJIxRlRAIRIP/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbythMp9OoYcl1qjJ7Wa0xscIoyjsSpjBKqPeFIAsHN8eerHHOeFG4TvgMCBSbbctZv0/exec';
 
 function backendConfigured() {
   return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.startsWith('PASTE_YOUR');
@@ -543,7 +576,7 @@ function renderVisionSummary(records) {
             <div class="bar-track"><div class="bar-fill ${counts[i]>0 && i===modeIdx?'top':''}" style="width:${(counts[i]/max*100)||0}%"></div></div>
             <div class="bar-count">${counts[i]}</div>
           </div>`).join('')}
-        ${renderOtherList(records, seg.key, 'benchmark', 'Aspiration Benchmark Statement')}
+        ${renderOtherList(records, seg.key, 'benchmark', 'Vision Benchmark Statement')}
       </div>`;
   }).join('');
 }
@@ -774,7 +807,7 @@ function exportRound(round) {
             rows.push([r.name, seg.label, 'Score', a.score.toFixed(1), new Date(r.submittedAt).toISOString()]);
             rows.push([r.name, seg.label, 'Level', levelForScore(a.score).name, new Date(r.submittedAt).toISOString()]);
           }
-          if (a.benchmark) rows.push([r.name, seg.label, 'Aspiration Benchmark Statement', a.benchmark, new Date(r.submittedAt).toISOString()]);
+          if (a.benchmark) rows.push([r.name, seg.label, 'Vision Benchmark Statement', a.benchmark, new Date(r.submittedAt).toISOString()]);
         } else if (round === 'ambition') {
           const ts = new Date(r.submittedAt).toISOString();
           if (a.role) rows.push([r.name, seg.label, 'Role', a.role, ts]);
@@ -834,15 +867,15 @@ function renderParticipant() {
         <h2>${r.label}</h2>
         <p>${r.desc}</p>
       </div>
-      <div style="margin-bottom:18px">
+      <div class="p-namerow">
         <label>Your name <span style="color:var(--danger)">*</span></label>
         <input type="text" id="pName" placeholder="Enter your full name">
         <div class="err" id="nameErr">Please enter your name.</div>
       </div>
       ${body}
-      <div class="submit-bar">
+      <div class="submit-bar"><div class="inner">
         <button class="primary" onclick="submitParticipant()">Submit my response</button>
-      </div>
+      </div></div>
     </div>`;
 }
 
@@ -875,7 +908,7 @@ function visionScaleReference() {
 }
 
 function visionForm() {
-  return visionScaleReference() + SEGMENTS.map(seg => `
+  return visionScaleReference() + '<div class="form-grid">' + SEGMENTS.map(seg => `
     <div class="vision-card" style="--sc:${seg.color}" data-seg="${seg.key}" data-touched="0">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:2px">
         <div class="segment-badge ${seg.badge}"><span class="ic">${seg.icon}</span>${seg.label} <span style="color:var(--danger)">*</span></div>
@@ -888,15 +921,15 @@ function visionForm() {
         oninput="updateVisionSlider('${seg.key}', this.value)" aria-label="${seg.label} CX score">
       <div class="slider-ticks"><span>0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span></div>
       <div class="err" id="vErr_${seg.key}">Please set a score for this segment before submitting.</div>
-      <label style="margin-top:14px">Aspiration Benchmark Statement <span style="font-weight:500;color:var(--text-muted)">(optional)</span></label>
+      <label style="margin-top:14px">Vision Benchmark Statement <span style="font-weight:500;color:var(--text-muted)">(optional)</span></label>
       <textarea id="vbenchmark_${seg.key}" placeholder="${VISION_BENCHMARK_EXAMPLES[seg.key]}"></textarea>
-    </div>`).join('');
+    </div>`).join('') + '</div>';
 }
 
 const EMOTION_EXAMPLES = { ni: 'e.g. Fast', ind: 'e.g. Reliable', lta: 'e.g. Trusted', sa: 'e.g. Valued' };
 
 function emotionForm() {
-  return SEGMENTS.map(seg => `
+  return '<div class="form-grid">' + SEGMENTS.map(seg => `
     <div class="vision-card" style="--sc:${seg.color}" data-seg="${seg.key}">
       <div class="segment-badge ${seg.badge}" style="margin-bottom:12px"><span class="ic">${seg.icon}</span>${seg.label} <span style="color:var(--danger)">*</span></div>
       <div style="font-size:.8rem;color:var(--text-muted);margin-bottom:10px">Identify 3 emotions you want customers to feel about RAKEZ after every interaction with this segment.</div>
@@ -906,7 +939,7 @@ function emotionForm() {
         <input type="text" id="emo_${seg.key}_3" placeholder="Emotion 3">
       </div>
       <div class="err" id="emo_${seg.key}_1_err">Please enter at least one emotion for this segment.</div>
-    </div>`).join('');
+    </div>`).join('') + '</div>';
 }
 
 function updateVisionSlider(seg, val) {
@@ -927,6 +960,7 @@ function updateVisionSlider(seg, val) {
 function tabbedForm(prefix, panelFn) {
   return `
     <div class="group-note"><span>\u{1F465}</span><span><strong>Group activity.</strong> Fill in the tab for your group's segment only — the other three belong to the other groups.</span></div>
+    <label>Select the segment of your group <span style="color:var(--danger)">*</span></label>
     <div class="seg-tabs" id="${prefix}Tabs">
       ${SEGMENTS.map((seg,i) => `
         <button type="button" class="seg-tab ${i===0?'active':''}" data-seg="${seg.key}" onclick="switchTab('${prefix}','${seg.key}')">
@@ -945,61 +979,65 @@ function chipGroup(seg, name, opts, multi, errId) {
     </div>`;
 }
 
-function ambitionPanel(seg) {
+function qCard(num, title, body) {
   return `
-    <div class="card" style="margin-bottom:16px;padding:18px">
-      <div class="ns-intro">Align on the target ambition for this segment across all six levers.</div>
+    <div class="q-card">
+      <div class="q-head"><span class="q-num">${num}</span><h4>${title} <span class="req">*</span></h4></div>
+      ${body}
+    </div>`;
+}
 
-      <label>We want to be their... <span style="color:var(--danger)">*</span></label>
-      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Role we play in their business?</div>
-      <textarea id="amb_${seg.key}_role" placeholder="Role we play in their business" oninput="clearFieldErr(this)"></textarea>
-      <div class="err" id="amb_${seg.key}_role_err">Please fill in this field.</div>
+// The italic prompt under each question duplicated the placeholder inside the
+// field, so it is gone; the number carries the sequence instead.
+function ambitionPanel(seg) {
+  const k = seg.key;
+  return `
+    <div class="q-grid">
+      ${qCard(1, 'We want to be their...', `
+        <textarea id="amb_${k}_role" placeholder="Role we play in their business" oninput="clearFieldErr(this)"></textarea>
+        <div class="err" id="amb_${k}_role_err">Please fill in this field.</div>`)}
 
-      <label style="margin-top:12px">One promise we make them... <span style="color:var(--danger)">*</span></label>
-      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Our commitment to them?</div>
-      <textarea id="amb_${seg.key}_promise" placeholder="Our commitment to them" oninput="clearFieldErr(this)"></textarea>
-      <div class="err" id="amb_${seg.key}_promise_err">Please fill in this field.</div>
+      ${qCard(2, 'One promise we make them...', `
+        <textarea id="amb_${k}_promise" placeholder="Our commitment to them" oninput="clearFieldErr(this)"></textarea>
+        <div class="err" id="amb_${k}_promise_err">Please fill in this field.</div>`)}
 
-      <label style="margin-top:12px">Engaging with us should feel like... <span style="color:var(--danger)">*</span></label>
-      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Engagement feeling with RAKEZ?</div>
-      ${chipGroup(seg, 'feel', FEEL_OPTS, true, `amb_${seg.key}_feel_err`)}
-      <input type="text" class="other-input" id="amb_${seg.key}_feel_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${seg.key}_feel_err')">
-      <div class="err" id="amb_${seg.key}_feel_err">Select at least one option, or add your own via "Other".</div>
+      ${qCard(3, 'Engaging with us should feel like...', `
+        ${chipGroup(seg, 'feel', FEEL_OPTS, true, `amb_${k}_feel_err`)}
+        <input type="text" class="other-input" id="amb_${k}_feel_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${k}_feel_err')">
+        <div class="err" id="amb_${k}_feel_err">Select at least one option, or add your own via "Other".</div>`)}
 
-      <label style="margin-top:12px">The way we serve them... <span style="color:var(--danger)">*</span></label>
-      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Serving preference for this segment?</div>
-      ${chipGroup(seg, 'serve', SERVE_OPTS, true, `amb_${seg.key}_serve_err`)}
-      <input type="text" class="other-input" id="amb_${seg.key}_serve_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${seg.key}_serve_err')">
-      <div class="err" id="amb_${seg.key}_serve_err">Select at least one option, or add your own via "Other".</div>
+      ${qCard(4, 'The way we serve them...', `
+        ${chipGroup(seg, 'serve', SERVE_OPTS, true, `amb_${k}_serve_err`)}
+        <input type="text" class="other-input" id="amb_${k}_serve_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${k}_serve_err')">
+        <div class="err" id="amb_${k}_serve_err">Select at least one option, or add your own via "Other".</div>`)}
 
-      <label style="margin-top:12px">Preferred channel will be... <span style="color:var(--danger)">*</span></label>
-      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Preferred channels of interaction?</div>
-      ${chipGroup(seg, 'channel', CHANNEL_OPTS, true, `amb_${seg.key}_channel_err`)}
-      <input type="text" class="other-input" id="amb_${seg.key}_channel_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${seg.key}_channel_err')">
-      <div class="err" id="amb_${seg.key}_channel_err">Select at least one option, or add your own via "Other".</div>
+      ${qCard(5, 'Preferred channel will be...', `
+        ${chipGroup(seg, 'channel', CHANNEL_OPTS, true, `amb_${k}_channel_err`)}
+        <input type="text" class="other-input" id="amb_${k}_channel_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${k}_channel_err')">
+        <div class="err" id="amb_${k}_channel_err">Select at least one option, or add your own via "Other".</div>`)}
 
-      <label style="margin-top:12px">Their relationship is owned by... <span style="color:var(--danger)">*</span></label>
-      <div style="font-size:.78rem;color:var(--text-muted);font-style:italic;margin:-4px 0 8px">Who owns the responsibility of the segment?</div>
-      ${chipGroup(seg, 'owner', OWNER_OPTS, false, `amb_${seg.key}_owner_err`)}
-      <input type="text" class="other-input" id="amb_${seg.key}_owner_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${seg.key}_owner_err')">
-      <div class="err" id="amb_${seg.key}_owner_err">Select an option, or add your own via "Other".</div>
+      ${qCard(6, 'Their relationship is owned by...', `
+        ${chipGroup(seg, 'owner', OWNER_OPTS, false, `amb_${k}_owner_err`)}
+        <input type="text" class="other-input" id="amb_${k}_owner_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${k}_owner_err')">
+        <div class="err" id="amb_${k}_owner_err">Select an option, or add your own via "Other".</div>`)}
     </div>`;
 }
 
 /* ============================== NORTH STAR PANEL ============================== */
 function northStarPanel(seg) {
   return `
-    <div class="card" style="margin-bottom:16px;padding:18px">
-      <div class="ns-intro">Pick the KPIs that should define success for this segment — up to ${MAX_KPIS_PER_THEME} per theme — and set a target for each. Where we measure it today, the current figure is shown next to the KPI so the target is set against a real baseline.</div>
-      ${KPI_THEMES.map(th => northStarTheme(seg, th)).join('')}
+    <div class="ns-intro">Pick the KPIs that should define success for this segment — up to ${MAX_KPIS_PER_THEME} per theme — and set a target for each. Where we measure it today, the current figure is shown next to the KPI so the target is set against a real baseline.</div>
+    <div class="ns-themes">
+      ${KPI_THEMES.map((th, i) => northStarTheme(seg, th, i + 1)).join('')}
     </div>`;
 }
 
-function northStarTheme(seg, th) {
+function northStarTheme(seg, th, num) {
   const opts = KPI_CATALOGUE[th.key].filter(k => k.segs.indexOf(seg.key) !== -1);
   return `
     <div class="theme-block" data-seg="${seg.key}" data-theme="${th.key}">
       <div class="theme-head">
+        <span class="q-num">${num}</span>
         <div class="th-ic">${th.icon}</div>
         <h5>${th.label}</h5>
         <span class="kpi-count" id="ns_${seg.key}_${th.key}_count">0 / ${MAX_KPIS_PER_THEME}</span>
