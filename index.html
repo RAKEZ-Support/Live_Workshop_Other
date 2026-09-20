@@ -306,7 +306,7 @@ function levelForScore(score) {
    and a pick is stored as the composed label ("Self-Serve — Agentic AI") so
    the sheet, CSV, tallies and deck keep working unchanged. */
 const SERVE_GROUPS = [
-  { name:'Self-Serve',                 variants:['Without AI','Basic AI','Agentic AI'] },
+  { name:'Self-Serve',                 variants:['Without AI','LLM Chatbot','Agentic AI'] },
   { name:'General Guided Assistance',  variants:['Human-Guided','AI-Guided'] },
   { name:'Priority Support',           variants:['Specialised Team (Human)','Specialised Team + Agentic AI Copilot'] },
   { name:'Relationship-Led Service',   variants:['Human-Led','Agentic AI with Memory'] },
@@ -333,7 +333,7 @@ function groupOptionLabels(groups) {
   });
   return out;
 }
-const FEEL_OPTS    = ['Fast','Intuitive','Transparent','Reliable','Guided','Technical','SLA-Driven','Empathetic','Effortless','AI-Led','Always Available','Consultative','Proactive'];
+const FEEL_OPTS    = ['Fast','Intuitive','Transparent','Reliable','Guided','Technical','SLA-Driven','Empathetic','Effortless','Always Available','Consultative','Proactive'];
 const OWNER_OPTS   = ['Self-Managed (AI-Enabled)','AI-First with Human Support','Dedicated AI Agent','Contact Centre Enabled Support','Dedicated Account Manager','Hybrid (Contact Centre + Account Manager)'];
 
 /* ---------- North Star: KPI catalogue, per-theme, filtered per segment ---------- */
