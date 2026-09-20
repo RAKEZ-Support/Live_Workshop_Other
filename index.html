@@ -306,20 +306,19 @@ function levelForScore(score) {
    and a pick is stored as the composed label ("Self-Serve — Agentic AI") so
    the sheet, CSV, tallies and deck keep working unchanged. */
 const SERVE_GROUPS = [
-  { name:'AI-First, Human on Request' },
-  { name:'Self-Serve',            variants:['Without AI','Basic AI','Agentic AI'] },
-  { name:'Dedicated Relationship',variants:['Human-Led','Agentic AI with Memory'] },
-  { name:'Priority Support',      variants:['Specialised Team (Human)','Specialised Team + Agentic AI Copilot'] },
-  { name:'Guided Assistance',     variants:['Human-Guided','AI-Guided'] },
+  { name:'Self-Serve',                 variants:['Without AI','Basic AI','Agentic AI'] },
+  { name:'General Guided Assistance',  variants:['Human-Guided','AI-Guided'] },
+  { name:'Priority Support',           variants:['Specialised Team (Human)','Specialised Team + Agentic AI Copilot'] },
+  { name:'Relationship-Led Service',   variants:['Human-Led','Agentic AI with Memory'] },
 ];
 // The last channel differs by segment: the two customer segments reach a key
 // account desk, the two agent segments reach their account manager.
 const CHANNEL_GROUPS_BASE = [
   { name:'Portal',     variants:['Standard Portal','Conversational AI'] },
   { name:'Mobile App', variants:['Standard','Conversational AI'] },
-  { name:'Email',      variants:['Human-Led','AI-Led'] },
-  { name:'Call',       variants:['Human-Led','AI-Led'] },
-  { name:'WhatsApp',   variants:['Human-Led','AI-Led'] },
+  { name:'Email',      variants:['Human-Led','AI Converse'] },
+  { name:'Call',       variants:['Human-Led','AI Converse','IVR + Human'] },
+  { name:'WhatsApp',   variants:['Self-Serve only','Self-Serve + Human','AI Converse'] },
 ];
 function channelGroupsFor(segKey) {
   return CHANNEL_GROUPS_BASE.concat([{ name: (segKey === 'ni' || segKey === 'ind') ? 'Key Accounts' : 'Account Manager' }]);
