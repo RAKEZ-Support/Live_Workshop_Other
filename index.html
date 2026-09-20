@@ -144,6 +144,24 @@
   .submit-bar { position:sticky; bottom:0; background:linear-gradient(180deg, transparent, var(--bg) 30%); padding:16px 0 4px; margin-top:10px; }
   .submit-bar .inner { max-width:420px; margin:0 auto; }
 
+  /* ---- category cards with radio variants (Q4, Q5) ---- */
+  .og-grid { display:grid; grid-template-columns:1fr; gap:10px; }
+  .opt-group { border:1.5px solid var(--hairline); border-radius:12px; background:#fff; padding:12px 14px; transition:.15s; }
+  .opt-group.plain { cursor:pointer; }
+  .opt-group.plain:hover, .opt-group:hover { border-color:#cbd5e1; }
+  .opt-group.on { border-color:var(--accent-teal); box-shadow:0 0 0 3px rgba(0,168,150,.10); }
+  .og-head { display:flex; align-items:center; gap:10px; font-size:.86rem; font-weight:700; color:var(--text-main); line-height:1.35; }
+  .og-tick { flex:none; width:16px; height:16px; border-radius:50%; border:1.5px solid #cbd5e1; display:flex; align-items:center; justify-content:center; }
+  .opt-group.on .og-tick { border-color:var(--accent-teal); background:var(--accent-teal); }
+  .opt-group.on .og-tick::after { content:''; width:5px; height:5px; border-radius:50%; background:#fff; }
+  .og-vars { display:flex; flex-wrap:wrap; gap:7px; margin:11px 0 0 26px; }
+  .og-var { display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--hairline); background:#fbfcfd;
+            border-radius:999px; padding:7px 13px; font-size:.79rem; font-family:inherit; color:var(--text-muted); cursor:pointer; transition:.15s; }
+  .og-var::before { content:''; flex:none; width:11px; height:11px; border-radius:50%; border:1.5px solid #cbd5e1; }
+  .og-var:hover { border-color:#cbd5e1; color:var(--text-main); }
+  .og-var.on { border-color:var(--accent-teal); background:var(--light-teal); color:var(--primary-dark); font-weight:700; }
+  .og-var.on::before { border-color:var(--accent-teal); background:var(--accent-teal); box-shadow:inset 0 0 0 2px #fff; }
+
   /* ---- numbered question cards (rounds 3 and 4) ---- */
   .q-grid { display:grid; grid-template-columns:1fr; gap:14px; margin-bottom:16px; }
   .q-card { background:#fff; border:1px solid var(--hairline); border-radius:14px; padding:17px 18px 18px; }
@@ -282,15 +300,42 @@ function levelForScore(score) {
   if (band > 4) band = 4;
   return { name: LEVELS[band], color: LEVEL_COLORS[band] };
 }
-const SERVE_OPTS   = ['Digital-First','Self-Serve','Relationship-Led','Priority Support','Guided Assistance','Agentic (AI completes the task)'];
+/* Q4 and Q5 are categories, each holding mutually exclusive variants — you
+   cannot serve a segment through Basic AI self-serve AND Agentic AI
+   self-serve. Categories are multi-select, variants inside are single-select,
+   and a pick is stored as the composed label ("Self-Serve — Agentic AI") so
+   the sheet, CSV, tallies and deck keep working unchanged. */
+const SERVE_GROUPS = [
+  { name:'AI-First, Human on Request' },
+  { name:'Self-Serve',            variants:['Without AI','Basic AI','Agentic AI'] },
+  { name:'Dedicated Relationship',variants:['Human-Led','Agentic AI with Memory'] },
+  { name:'Priority Support',      variants:['Specialised Team (Human)','Specialised Team + Agentic AI Copilot'] },
+  { name:'Guided Assistance',     variants:['Human-Guided','AI-Guided'] },
+];
 // The last channel differs by segment: the two customer segments reach a key
 // account desk, the two agent segments reach their account manager.
-const CHANNEL_OPTS_BASE = ['Portal','Email','Call','Mobile App','WhatsApp','Conversational AI'];
-function channelOptsFor(segKey) {
-  return CHANNEL_OPTS_BASE.concat([(segKey === 'ni' || segKey === 'ind') ? 'Key Accounts' : 'Account Manager']);
+const CHANNEL_GROUPS_BASE = [
+  { name:'Portal',     variants:['Standard Portal','Conversational AI'] },
+  { name:'Mobile App', variants:['Standard','Conversational AI'] },
+  { name:'Email',      variants:['Human-Led','AI-Led'] },
+  { name:'Call',       variants:['Human-Led','AI-Led'] },
+  { name:'WhatsApp',   variants:['Human-Led','AI-Led'] },
+];
+function channelGroupsFor(segKey) {
+  return CHANNEL_GROUPS_BASE.concat([{ name: (segKey === 'ni' || segKey === 'ind') ? 'Key Accounts' : 'Account Manager' }]);
 }
-const FEEL_OPTS    = ['Fast','Intuitive','Transparent','Reliable','Guided','Technical','SLA-Driven','Empathetic','Always-on (AI Driven)','Consultative','Proactive'];
-const OWNER_OPTS   = ['Contact Center Enabled Support','Dedicated Account Manager','Hybrid Model','AI First with Human in the Loop','AI Only (Agentic)'];
+
+// Flattened composed labels, for seeding the facilitator tallies.
+function groupOptionLabels(groups) {
+  const out = [];
+  groups.forEach(g => {
+    if (g.variants && g.variants.length) g.variants.forEach(v => out.push(g.name + ' \u2014 ' + v));
+    else out.push(g.name);
+  });
+  return out;
+}
+const FEEL_OPTS    = ['Fast','Intuitive','Transparent','Reliable','Guided','Technical','SLA-Driven','Empathetic','Effortless','AI-Led','Always Available','Consultative','Proactive'];
+const OWNER_OPTS   = ['Self-Managed (AI-Enabled)','AI-First with Human Support','Dedicated AI Agent','Contact Centre Enabled Support','Dedicated Account Manager','Hybrid (Contact Centre + Account Manager)'];
 
 /* ---------- North Star: KPI catalogue, per-theme, filtered per segment ---------- */
 const ALL_SEGS = ['ni','ind','lta','sa'];
@@ -403,7 +448,7 @@ const state = {
 /* ============================== STORAGE HELPERS (Google Sheet backend) ============================== */
 // 1. Create a Google Sheet, add the Apps Script from the setup guide, deploy it as a Web App
 //    ("Execute as: Me", "Who has access: Anyone"), then paste the deployment URL below.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgw4ftJ5prh-ek4hA27wmPDzzf_5kZGY_3vUCMcI8z-yk8KnF8-L9s_cMmC1kKVlfV/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwgv7mEF-Ki3A3sEv-h26MUAcRS9-YLoeWCI-Uobdbwd1NHuKDb7C9kSM4cJkbob_s-/exec';
 
 function backendConfigured() {
   return APPS_SCRIPT_URL && !APPS_SCRIPT_URL.startsWith('PASTE_YOUR');
@@ -607,7 +652,7 @@ function renderVisionSummary(records) {
   }).join('');
 }
 
-function renderOptionTally(groupKey, groupLabel, opts, records, segKey) {
+function renderOptionTally(groupKey, groupLabel, opts, records, segKey, compact) {
   const counts = {}; opts.forEach(o => counts[o]=0);
   records.forEach(r => {
     const a = r.answers && r.answers[segKey] && r.answers[segKey][groupKey];
@@ -617,8 +662,13 @@ function renderOptionTally(groupKey, groupLabel, opts, records, segKey) {
   });
   const max = Math.max(...Object.values(counts), 1);
   const topVal = Math.max(...Object.values(counts));
+  const shown = compact ? opts.filter(o => counts[o] > 0) : opts;
+  if (compact && !shown.length) {
+    return `<div style="margin:10px 0 6px"><div style="font-size:.74rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${groupLabel}</div>
+      <div class="empty-state" style="padding:2px 0">No picks yet.</div></div>`;
+  }
   return `<div style="margin:10px 0 6px"><div style="font-size:.74rem;font-weight:800;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">${groupLabel}</div>
-    ${opts.map(o => `
+    ${shown.map(o => `
       <div class="bar-row">
         <div class="bar-label">${o}</div>
         <div class="bar-track"><div class="bar-fill ${counts[o]>0 && counts[o]===topVal?'top':''}" style="width:${(counts[o]/max*100)||0}%"></div></div>
@@ -779,9 +829,9 @@ function renderAmbitionSummary(records) {
         </ul>
         ${renderOptionTally('feel', 'Engaging with us should feel like', FEEL_OPTS, records, seg.key)}
         ${renderOtherList(records, seg.key, 'feelOther', 'Engaging with us should feel like')}
-        ${renderOptionTally('serve', 'The way we serve them', SERVE_OPTS, records, seg.key)}
+        ${renderOptionTally('serve', 'The way we serve them', groupOptionLabels(SERVE_GROUPS), records, seg.key, true)}
         ${renderOtherList(records, seg.key, 'serveOther', 'The way we serve them')}
-        ${renderOptionTally('channel', 'Preferred channel', channelOptsFor(seg.key), records, seg.key)}
+        ${renderOptionTally('channel', 'Preferred channel', groupOptionLabels(channelGroupsFor(seg.key)), records, seg.key, true)}
         ${renderOtherList(records, seg.key, 'channelOther', 'Preferred channel')}
         ${renderOptionTally('owner', 'Relationship owned by', OWNER_OPTS, records, seg.key)}
         ${renderOtherList(records, seg.key, 'ownerOther', 'Relationship owned by')}
@@ -997,6 +1047,53 @@ function tabbedForm(prefix, panelFn) {
     </div>`;
 }
 
+/* A category card: the name with a selection dot, and — where the category has
+   them — a row of radio-style variants. Selecting a variant selects the
+   category; clicking the selected variant again clears it. */
+function optionGroupGrid(seg, field, groups, errId) {
+  return `
+    <div class="og-grid" data-field="${field}">
+      ${groups.map((g, i) => {
+        const gid = `og_${seg.key}_${field}_${i}`;
+        const hasVars = !!(g.variants && g.variants.length);
+        return `
+        <div class="opt-group${hasVars ? '' : ' plain'}" id="${gid}" data-group="${escapeHtml(g.name)}"
+             ${hasVars ? '' : `onclick="toggleOptGroup('${gid}','${errId || ''}')"`}>
+          <div class="og-head"><span class="og-tick"></span><span>${escapeHtml(g.name)}</span></div>
+          ${hasVars ? `<div class="og-vars">${g.variants.map(v =>
+            `<button type="button" class="og-var" data-var="${escapeHtml(v)}"
+                     onclick="pickVariant('${gid}',this,'${errId || ''}')">${escapeHtml(v)}</button>`).join('')}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function toggleOptGroup(gid, errId) {
+  const el = document.getElementById(gid);
+  if (!el) return;
+  el.classList.toggle('on');
+  if (errId) clearErrById(errId);
+}
+
+function pickVariant(gid, btn, errId) {
+  const el = document.getElementById(gid);
+  if (!el) return;
+  const already = btn.classList.contains('on');
+  el.querySelectorAll('.og-var').forEach(b => b.classList.remove('on'));
+  if (already) el.classList.remove('on');
+  else { btn.classList.add('on'); el.classList.add('on'); }
+  if (errId) clearErrById(errId);
+}
+
+function collectOptionGroups(segKey, field) {
+  const grid = document.querySelector(`#ambPanels .seg-panel[data-seg="${segKey}"] .og-grid[data-field="${field}"]`);
+  if (!grid) return [];
+  return Array.from(grid.querySelectorAll('.opt-group.on')).map(el => {
+    const v = el.querySelector('.og-var.on');
+    return el.dataset.group + (v ? ' \u2014 ' + v.dataset.var : '');
+  });
+}
+
 function chipGroup(seg, name, opts, multi, errId) {
   return `
     <div class="chip-grid" data-name="${name}" data-multi="${multi?1:0}">
@@ -1032,12 +1129,12 @@ function ambitionPanel(seg) {
         <div class="err" id="amb_${k}_feel_err">Select at least one option, or add your own via "Other".</div>`)}
 
       ${qCard(4, 'The way we serve them...', `
-        ${chipGroup(seg, 'serve', SERVE_OPTS, true, `amb_${k}_serve_err`)}
+        ${optionGroupGrid(seg, 'serve', SERVE_GROUPS, `amb_${k}_serve_err`)}
         <input type="text" class="other-input" id="amb_${k}_serve_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${k}_serve_err')">
         <div class="err" id="amb_${k}_serve_err">Select at least one option, or add your own via "Other".</div>`)}
 
       ${qCard(5, 'Preferred channel will be...', `
-        ${chipGroup(seg, 'channel', channelOptsFor(seg.key), true, `amb_${k}_channel_err`)}
+        ${optionGroupGrid(seg, 'channel', channelGroupsFor(seg.key), `amb_${k}_channel_err`)}
         <input type="text" class="other-input" id="amb_${k}_channel_other" placeholder="Other — add a pointer not listed above" oninput="clearErrById('amb_${k}_channel_err')">
         <div class="err" id="amb_${k}_channel_err">Select at least one option, or add your own via "Other".</div>`)}
 
@@ -1234,9 +1331,9 @@ function collectAmbitionAnswers() {
     const promise = document.getElementById(`amb_${seg.key}_promise`).value.trim();
     const feel = Array.from(panel.querySelectorAll(`input[name="${seg.key}_feel"]:checked`)).map(i=>i.value);
     const feelOther = document.getElementById(`amb_${seg.key}_feel_other`).value.trim();
-    const serve = Array.from(panel.querySelectorAll(`input[name="${seg.key}_serve"]:checked`)).map(i=>i.value);
+    const serve = collectOptionGroups(seg.key, 'serve');
     const serveOther = document.getElementById(`amb_${seg.key}_serve_other`).value.trim();
-    const channel = Array.from(panel.querySelectorAll(`input[name="${seg.key}_channel"]:checked`)).map(i=>i.value);
+    const channel = collectOptionGroups(seg.key, 'channel');
     const channelOther = document.getElementById(`amb_${seg.key}_channel_other`).value.trim();
     const ownerEl = panel.querySelector(`input[name="${seg.key}_owner"]:checked`);
     const ownerOther = document.getElementById(`amb_${seg.key}_owner_other`).value.trim();
@@ -1320,8 +1417,8 @@ function ambitionSegmentState(segKey) {
     role:    !!val(`amb_${segKey}_role`),
     promise: !!val(`amb_${segKey}_promise`),
     feel:    panel.querySelectorAll(`input[name="${segKey}_feel"]:checked`).length > 0 || !!val(`amb_${segKey}_feel_other`),
-    serve:   panel.querySelectorAll(`input[name="${segKey}_serve"]:checked`).length > 0 || !!val(`amb_${segKey}_serve_other`),
-    channel: panel.querySelectorAll(`input[name="${segKey}_channel"]:checked`).length > 0 || !!val(`amb_${segKey}_channel_other`),
+    serve:   collectOptionGroups(segKey, 'serve').length > 0 || !!val(`amb_${segKey}_serve_other`),
+    channel: collectOptionGroups(segKey, 'channel').length > 0 || !!val(`amb_${segKey}_channel_other`),
     owner:   !!panel.querySelector(`input[name="${segKey}_owner"]:checked`) || !!val(`amb_${segKey}_owner_other`)
   };
 }
